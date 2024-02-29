@@ -1,0 +1,13 @@
+# Copyright (C) 2023 Liquid Reply GmbH. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+[package]
+name = "wasi-hello"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 WITH LLVM-exception"
+authors = ["The WAMR Project Developers"]
+
+[dependencies]
+# FIXME: after merging the PR, we should use the official wasi-sdk crate
+wamr-rust-sdk = { git = "https://github.com/lum1n0us/wamr-rust-sdk", branch = "init_repo" }

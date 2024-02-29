@@ -8,6 +8,7 @@ license.workspace = true
 edition.workspace = true
 repository = "https://github.com/bytecodealliance/wamr-rust-sdk"
 version = "0.1.0"
+readme = "README.md"
 categories = ["api-bindings", "wasm"]
 keywords = ["api-bindings", "wasm", "webassembly"]
 
