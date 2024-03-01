@@ -1,0 +1,23 @@
+# Copyright (C) 2023 Liquid Reply GmbH. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+[package]
+name = "wamr-sys"
+description = "Unsafe bindings for wasm-micro-runtime"
+license.workspace = true
+edition.workspace = true
+repository = "https://github.com/bytecodealliance/wamr-rust-sdk"
+version = "0.1.0"
+readme = "README.md"
+categories = ["api-bindings", "wasm"]
+keywords = ["api-bindings", "wasm", "webassembly"]
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.69"
+cc = "1.0"
+cmake = "0.1"
+
+# [features]
+# llvmjit = []
