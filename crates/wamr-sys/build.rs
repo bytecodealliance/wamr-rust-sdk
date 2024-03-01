@@ -7,7 +7,7 @@ extern crate bindgen;
 extern crate cmake;
 
 use cmake::Config;
-use std::{env, path::Path, path::PathBuf};
+use std::{env, path::PathBuf};
 
 fn main() {
     let wamr_root = env::current_dir().unwrap();

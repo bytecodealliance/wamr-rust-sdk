@@ -7,4 +7,5 @@ RUN apt-get update \
   && apt-get upgrade -y \
   && apt-get install --no-install-recommends -y cmake
 
+# Fix "Unable to find libclang" issue
 RUN apt-get install --no-install-recommends -y clang-11
