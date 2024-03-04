@@ -10,4 +10,4 @@ authors = ["The WAMR Project Developers"]
 
 [dependencies]
 # FIXME: after merging the PR, we should use the official wasi-sdk crate
-wamr-rust-sdk = { git = "https://github.com/lum1n0us/wamr-rust-sdk", branch = "init_repo" }
+wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", branch = "main" }

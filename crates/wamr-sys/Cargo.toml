@@ -11,6 +11,17 @@ version = "0.1.0"
 readme = "README.md"
 categories = ["api-bindings", "wasm"]
 keywords = ["api-bindings", "wasm", "webassembly"]
+include = [
+    "/build.rs",
+    "/src/lib.rs",
+    "/wasm-micro-runtime/build-scripts",
+    "/wasm-micro-runtime/CMakeLists.txt",
+    "/wasm-micro-runtime/core/iwasm",
+    "/wasm-micro-runtime/core/shared",
+    "/wasm-micro-runtime/core/config.h",
+    "/wasm-micro-runtime/core/version.h",
+    "/README.md",
+]
 
 [dependencies]
 
