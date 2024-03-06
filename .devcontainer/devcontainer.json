@@ -18,7 +18,8 @@
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
-  "postCreateCommand": "rustc --version",
+  //"postCreateCommand": "rustc --version",
+  "postCreateCommand": "bash .devcontainer/finalize.sh",
   // Configure tool-specific properties.
   "customizations": {
     "settings": {
