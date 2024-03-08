@@ -46,16 +46,12 @@ impl Module {
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
     pub fn from_file(wasm_file: &Path) -> Result<Self, RuntimeError> {
-        let mut wasm_file = match File::open(wasm_file) {
-            Ok(f) => f,
-            Err(e) => return Err(RuntimeError::WasmFileFSError(e)),
-        };
+        let mut wasm_file = File::open(wasm_file)?;
 
         let mut binary: Vec<u8> = Vec::new();
-        match wasm_file.read_to_end(&mut binary) {
-            Ok(_) => Self::from_buf(&binary),
-            Err(e) => Err(RuntimeError::WasmFileFSError(e)),
-        }
+        wasm_file.read_to_end(&mut binary)?;
+
+        Self::from_buf(&binary)
     }
 
     /// compile a module int the given buffer

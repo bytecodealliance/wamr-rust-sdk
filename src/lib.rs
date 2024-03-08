@@ -139,6 +139,11 @@
 //!     Ok(())
 //! }
 //! ```
+//!
+
+use std::error;
+use std::fmt;
+use std::io;
 
 pub mod function;
 mod helper;
@@ -164,4 +169,33 @@ pub enum RuntimeError {
     ExecutionError(String),
     /// usually returns by `find_export_func()`
     FunctionNotFound,
+}
+
+impl fmt::Display for RuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RuntimeError::NotImplemented => write!(f, "Not implemented"),
+            RuntimeError::InitializationFailure => write!(f, "Runtime initialization failure"),
+            RuntimeError::WasmFileFSError(e) => write!(f, "Wasm file operation error: {}", e),
+            RuntimeError::CompilationError(e) => write!(f, "Wasm compilation error: {}", e),
+            RuntimeError::InstantiationFailure(e) => write!(f, "Wasm instantiation failure: {}", e),
+            RuntimeError::ExecutionError(e) => write!(f, "Wasm execution error: {}", e),
+            RuntimeError::FunctionNotFound => write!(f, "Function not found"),
+        }
+    }
+}
+
+impl error::Error for RuntimeError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        match self {
+            RuntimeError::WasmFileFSError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl From<io::Error> for RuntimeError {
+    fn from(e: io::Error) -> Self {
+        RuntimeError::WasmFileFSError(e)
+    }
 }
