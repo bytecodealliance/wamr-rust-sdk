@@ -152,6 +152,7 @@ pub mod instance;
 pub mod module;
 pub mod runtime;
 pub mod value;
+pub mod wasi_context;
 
 /// all kinds of exceptions raised by WAMR
 #[derive(Debug)]

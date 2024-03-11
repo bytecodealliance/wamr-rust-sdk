@@ -6,7 +6,7 @@
 use std::path::PathBuf;
 use wamr_rust_sdk::{
     function::Function, instance::Instance, module::Module, runtime::Runtime, value::WasmValue,
-    RuntimeError,
+    wasi_context::WasiCtxBuilder, RuntimeError,
 };
 
 fn main() -> Result<(), RuntimeError> {
@@ -16,7 +16,11 @@ fn main() -> Result<(), RuntimeError> {
     d.push("gcd_wasm32_wasi.wasm");
     let mut module = Module::from_file(&runtime, d.as_path())?;
 
-    module.set_wasi_arg_pre_open_path(vec![String::from(".")], vec![]);
+    let wasi_ctx = WasiCtxBuilder::new()
+        .set_pre_open_path(vec!["."], vec![])
+        .build();
+
+    module.set_wasi_args(wasi_ctx);
 
     let instance = Instance::new(&runtime, &module, 1024 * 64)?;
 
