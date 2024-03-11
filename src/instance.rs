@@ -16,7 +16,8 @@ use wamr_sys::{
 };
 
 use crate::{
-    helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, module::Module, RuntimeError,
+    helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, module::Module, runtime::Runtime,
+    RuntimeError,
 };
 
 #[derive(Debug)]
@@ -30,8 +31,8 @@ impl Instance {
     /// # Error
     ///
     /// Return `RuntimeError::CompilationError` if failed.
-    pub fn new(module: &Module, stack_size: u32) -> Result<Self, RuntimeError> {
-        Self::new_with_args(module, stack_size, 0)
+    pub fn new(runtime: &Runtime, module: &Module, stack_size: u32) -> Result<Self, RuntimeError> {
+        Self::new_with_args(runtime, module, stack_size, 0)
     }
 
     /// instantiate a module with stack size and host managed heap size
@@ -42,6 +43,7 @@ impl Instance {
     ///
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new_with_args(
+        _runtime: &Runtime,
         module: &Module,
         stack_size: u32,
         heap_size: u32,
@@ -106,8 +108,7 @@ mod tests {
 
     #[test]
     fn test_instance_new() {
-        let runtime = Runtime::new();
-        assert!(runtime.is_ok());
+        let runtime = Runtime::new().unwrap();
 
         // (module
         //   (func (export "add") (param i32 i32) (result i32)
@@ -123,15 +124,15 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&binary);
+        let module = Module::from_buf(&runtime, &binary);
         assert!(module.is_ok());
 
         let module = &module.unwrap();
 
-        let instance = Instance::new_with_args(module, 1024, 1024);
+        let instance = Instance::new_with_args(&runtime, module, 1024, 1024);
         assert!(instance.is_ok());
 
-        let instance = Instance::new_with_args(module, 1024, 0);
+        let instance = Instance::new_with_args(&runtime, module, 1024, 0);
         assert!(instance.is_ok());
 
         let instance = instance.unwrap();
@@ -148,8 +149,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_instance_running_mode_default() {
-        let runtime = Runtime::builder().use_system_allocator().build();
-        assert!(runtime.is_ok());
+        let runtime = Runtime::builder().use_system_allocator().build().unwrap();
 
         // (module
         //   (func (export "add") (param i32 i32) (result i32)
@@ -165,12 +165,12 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&binary);
+        let module = Module::from_buf(&runtime, &binary);
         assert!(module.is_ok());
 
         let module = &module.unwrap();
 
-        let instance = Instance::new_with_args(module, 1024, 1024);
+        let instance = Instance::new_with_args(&runtime, module, 1024, 1024);
         assert!(instance.is_ok());
 
         let instance = instance.unwrap();
@@ -190,8 +190,8 @@ mod tests {
         let runtime = Runtime::builder()
             .run_as_interpreter()
             .use_system_allocator()
-            .build();
-        assert!(runtime.is_ok());
+            .build()
+            .unwrap();
 
         // (module
         //   (func (export "add") (param i32 i32) (result i32)
@@ -207,12 +207,12 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&binary);
+        let module = Module::from_buf(&runtime, &binary);
         assert!(module.is_ok());
 
         let module = &module.unwrap();
 
-        let instance = Instance::new_with_args(module, 1024, 1024);
+        let instance = Instance::new_with_args(&runtime, module, 1024, 1024);
         assert!(instance.is_ok());
 
         let instance = instance.unwrap();

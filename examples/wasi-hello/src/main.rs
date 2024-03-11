@@ -10,15 +10,15 @@ use wamr_rust_sdk::{
 };
 
 fn main() -> Result<(), RuntimeError> {
-    let _runtime = Runtime::new()?;
+    let runtime = Runtime::new()?;
 
     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     d.push("gcd_wasm32_wasi.wasm");
-    let mut module = Module::from_file(d.as_path())?;
+    let mut module = Module::from_file(&runtime, d.as_path())?;
 
     module.set_wasi_arg_pre_open_path(vec![String::from(".")], vec![]);
 
-    let instance = Instance::new(&module, 1024 * 64)?;
+    let instance = Instance::new(&runtime, &module, 1024 * 64)?;
 
     let function = Function::find_export_func(&instance, "gcd")?;
 
