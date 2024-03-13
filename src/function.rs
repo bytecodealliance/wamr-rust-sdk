@@ -113,7 +113,7 @@ impl Function {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::Module, runtime::Runtime};
+    use crate::{module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder};
     use std::path::PathBuf;
 
     #[test]
@@ -168,7 +168,10 @@ mod tests {
         assert!(module.is_ok());
         let mut module = module.unwrap();
 
-        module.set_wasi_arg_pre_open_path(vec![String::from(".")], vec![]);
+        let wasi_ctx = WasiCtxBuilder::new()
+            .set_pre_open_path(vec!["."], vec![])
+            .build();
+        module.set_wasi_context(wasi_ctx);
 
         let instance = Instance::new(&runtime, &module, 1024 * 64);
         assert!(instance.is_ok());
