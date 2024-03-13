@@ -118,8 +118,7 @@ mod tests {
 
     #[test]
     fn test_func_in_wasm32_unknown() {
-        let runtime = Runtime::new();
-        assert!(runtime.is_ok());
+        let runtime = Runtime::new().unwrap();
 
         // (module
         //   (func (export "add") (param i32 i32) (result i32)
@@ -135,11 +134,11 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&binary);
+        let module = Module::from_buf(&runtime, &binary);
         assert!(module.is_ok());
         let module = module.unwrap();
 
-        let instance = Instance::new(&module, 1024);
+        let instance = Instance::new(&runtime, &module, 1024);
         assert!(instance.is_ok());
         let instance: &Instance = &instance.unwrap();
 
@@ -160,19 +159,18 @@ mod tests {
 
     #[test]
     fn test_func_in_wasm32_wasi() {
-        let runtime = Runtime::new();
-        assert!(runtime.is_ok());
+        let runtime = Runtime::new().unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("resources/test");
         d.push("gcd_wasm32_wasi.wasm");
-        let module = Module::from_file(d.as_path());
+        let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());
         let mut module = module.unwrap();
 
         module.set_wasi_arg_pre_open_path(vec![String::from(".")], vec![]);
 
-        let instance = Instance::new(&module, 1024 * 64);
+        let instance = Instance::new(&runtime, &module, 1024 * 64);
         assert!(instance.is_ok());
         let instance: &Instance = &instance.unwrap();
 

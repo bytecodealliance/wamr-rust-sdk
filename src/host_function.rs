@@ -81,17 +81,17 @@ mod tests {
         let runtime = Runtime::builder()
             .use_system_allocator()
             .register_host_function("extra", extra as *mut c_void)
-            .build();
-        assert!(runtime.is_ok());
+            .build()
+            .unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         d.push("resources/test");
         d.push("add_extra_wasm32_wasi.wasm");
-        let module = Module::from_file(d.as_path());
+        let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());
         let module = module.unwrap();
 
-        let instance = Instance::new(&module, 1024 * 64);
+        let instance = Instance::new(&runtime, &module, 1024 * 64);
         assert!(instance.is_ok());
         let instance: &Instance = &instance.unwrap();
 
