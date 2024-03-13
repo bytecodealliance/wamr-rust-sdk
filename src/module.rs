@@ -10,15 +10,19 @@ use crate::{
     helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, runtime::Runtime,
     wasi_context::WasiCtx, RuntimeError,
 };
-use std::{ffi::c_char, fs::File, io::Read, path::Path, ptr, string::String, vec::Vec};
+use std::{
+    ffi::c_char, ffi::CString, fs::File, io::Read, path::Path, ptr, string::String, vec::Vec,
+};
 use wamr_sys::{
-    wasm_module_t, wasm_runtime_load, wasm_runtime_set_wasi_addr_pool, wasm_runtime_set_wasi_args,
+    wasm_module_t, wasm_runtime_load, wasm_runtime_set_module_name,
+    wasm_runtime_set_wasi_addr_pool, wasm_runtime_set_wasi_args,
     wasm_runtime_set_wasi_ns_lookup_pool, wasm_runtime_unload,
 };
 
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Module {
+    name: String,
     module: wasm_module_t,
     // to keep the module content in memory
     content: Vec<u8>,
@@ -26,28 +30,29 @@ pub struct Module {
 }
 
 impl Module {
-    /// compile a module with the given wasm file path
+    /// compile a module with the given wasm file path, use the file name as the module name
     ///
     /// # Error
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
     pub fn from_file(runtime: &Runtime, wasm_file: &Path) -> Result<Self, RuntimeError> {
+        let name = wasm_file.file_name().unwrap().to_str().unwrap();
         let mut wasm_file = File::open(wasm_file)?;
 
         let mut binary: Vec<u8> = Vec::new();
         wasm_file.read_to_end(&mut binary)?;
 
-        Self::from_buf(runtime, &binary)
+        Self::from_buf(runtime, &binary, name)
     }
 
-    /// compile a module int the given buffer
+    /// compile a module int the given buffer,
     ///
     /// # Error
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    pub fn from_buf(_runtime: &Runtime, buf: &[u8]) -> Result<Self, RuntimeError> {
+    pub fn from_buf(_runtime: &Runtime, buf: &[u8], name: &str) -> Result<Self, RuntimeError> {
         let mut content = buf.to_vec();
         let mut error_buf: [c_char; DEFAULT_ERROR_BUF_SIZE] = [0; DEFAULT_ERROR_BUF_SIZE];
         let module = unsafe {
@@ -74,7 +79,22 @@ impl Module {
             }
         }
 
+        unsafe {
+            let name_c = CString::new(name.as_bytes()).unwrap();
+            if !wasm_runtime_set_module_name(
+                module,
+                name_c.as_ptr() as *mut c_char,
+                error_buf.as_mut_ptr(),
+                error_buf.len() as u32,
+            ) {
+                return Err(RuntimeError::CompilationError(error_buf_to_string(
+                    &error_buf,
+                )));
+            }
+        }
+
         Ok(Module {
+            name: String::from(name),
             module,
             content,
             wasi_ctx: WasiCtx::default(),
@@ -152,6 +172,10 @@ impl Module {
     pub fn get_inner_module(&self) -> wasm_module_t {
         self.module
     }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 impl Drop for Module {
@@ -165,8 +189,9 @@ impl Drop for Module {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{runtime::Runtime, wasi_context::WasiCtxBuilder};
+    use crate::{helper::cstr_to_string, runtime::Runtime, wasi_context::WasiCtxBuilder};
     use std::path::PathBuf;
+    use wamr_sys::wasm_runtime_get_module_name;
 
     #[test]
     fn test_module_not_exist() {
@@ -197,7 +222,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary);
+        let module = Module::from_buf(&runtime, &binary, "");
         assert!(module.is_ok());
     }
 
@@ -230,7 +255,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary);
+        let module = Module::from_buf(&runtime, &binary, "add");
         assert!(module.is_ok());
         let mut module = module.unwrap();
 
@@ -242,5 +267,34 @@ mod tests {
             .build();
 
         module.set_wasi_context(wasi_ctx);
+    }
+
+    #[test]
+    fn test_module_name() -> Result<(), RuntimeError> {
+        let runtime = Runtime::new()?;
+
+        // (module
+        //   (func (export "add") (param i32 i32) (result i32)
+        //     (local.get 0)
+        //     (local.get 1)
+        //     (i32.add)
+        //   )
+        // )
+        let binary = vec![
+            0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x07, 0x01, 0x60, 0x02, 0x7f,
+            0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07, 0x07, 0x01, 0x03, 0x61, 0x64, 0x64,
+            0x00, 0x00, 0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 0x00, 0x20, 0x01, 0x6a, 0x0b,
+        ];
+        let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
+
+        let module = Module::from_buf(&runtime, &binary, "add")?;
+
+        assert_eq!(module.get_name(), "add");
+
+        let name =
+            cstr_to_string(unsafe { wasm_runtime_get_module_name(module.get_inner_module()) });
+        assert_eq!(&name, module.get_name());
+
+        Ok(())
     }
 }

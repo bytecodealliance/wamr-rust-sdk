@@ -17,9 +17,13 @@ pub fn error_buf_to_string(&error_buf: &[c_char; DEFAULT_ERROR_BUF_SIZE]) -> Str
     String::from_utf8(error_content).unwrap()
 }
 
+pub fn cstr_to_string(raw_cstr: *const c_char) -> String {
+    let cstr = unsafe { CStr::from_ptr(raw_cstr) };
+    String::from_utf8_lossy(cstr.to_bytes()).to_string()
+}
+
 pub fn exception_to_string(raw_exception: *const c_char) -> String {
-    let exception = unsafe { CStr::from_ptr(raw_exception) };
-    String::from_utf8_lossy(exception.to_bytes()).to_string()
+    cstr_to_string(raw_exception)
 }
 
 #[cfg(test)]
