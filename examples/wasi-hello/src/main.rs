@@ -20,7 +20,7 @@ fn main() -> Result<(), RuntimeError> {
         .set_pre_open_path(vec!["."], vec![])
         .build();
 
-    module.set_wasi_args(wasi_ctx);
+    module.set_wasi_context(wasi_ctx);
 
     let instance = Instance::new(&runtime, &module, 1024 * 64)?;
 
