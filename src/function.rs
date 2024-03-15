@@ -28,13 +28,8 @@ impl Function {
     /// Return `RuntimeError::FunctionNotFound` if failed.
     pub fn find_export_func(instance: &Instance, name: &str) -> Result<Function, RuntimeError> {
         let name = CString::new(name).expect("CString::new failed");
-        let function = unsafe {
-            wasm_runtime_lookup_function(
-                instance.get_inner_instance(),
-                name.as_ptr(),
-                std::ptr::null(),
-            )
-        };
+        let function =
+            unsafe { wasm_runtime_lookup_function(instance.get_inner_instance(), name.as_ptr()) };
         match function.is_null() {
             true => Err(RuntimeError::FunctionNotFound),
             false => Ok(Function { function }),
