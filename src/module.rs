@@ -10,7 +10,7 @@ use crate::{
     helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, runtime::Runtime,
     wasi_context::WasiCtx, RuntimeError,
 };
-use std::{fs::File, io::Read, path::Path, ptr, string::String, vec::Vec};
+use std::{ffi::c_char, fs::File, io::Read, path::Path, ptr, string::String, vec::Vec};
 use wamr_sys::{
     wasm_module_t, wasm_runtime_load, wasm_runtime_set_wasi_addr_pool, wasm_runtime_set_wasi_args,
     wasm_runtime_set_wasi_ns_lookup_pool, wasm_runtime_unload,
@@ -49,7 +49,7 @@ impl Module {
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
     pub fn from_buf(_runtime: &Runtime, buf: &[u8]) -> Result<Self, RuntimeError> {
         let mut content = buf.to_vec();
-        let mut error_buf = [0i8; DEFAULT_ERROR_BUF_SIZE];
+        let mut error_buf: [c_char; DEFAULT_ERROR_BUF_SIZE] = [0; DEFAULT_ERROR_BUF_SIZE];
         let module = unsafe {
             wasm_runtime_load(
                 content.as_mut_ptr(),
@@ -90,25 +90,25 @@ impl Module {
         let real_paths = if self.wasi_ctx.get_preopen_real_paths().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_preopen_real_paths().as_ptr() as *mut *const i8
+            self.wasi_ctx.get_preopen_real_paths().as_ptr() as *mut *const c_char
         };
 
         let mapped_paths = if self.wasi_ctx.get_preopen_mapped_paths().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_preopen_mapped_paths().as_ptr() as *mut *const i8
+            self.wasi_ctx.get_preopen_mapped_paths().as_ptr() as *mut *const c_char
         };
 
         let env = if self.wasi_ctx.get_env_vars().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_env_vars().as_ptr() as *mut *const i8
+            self.wasi_ctx.get_env_vars().as_ptr() as *mut *const c_char
         };
 
         let args = if self.wasi_ctx.get_arguments().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_arguments().as_ptr() as *mut *mut i8
+            self.wasi_ctx.get_arguments().as_ptr() as *mut *mut c_char
         };
 
         unsafe {
@@ -127,7 +127,7 @@ impl Module {
             let ns_lookup_pool = if self.wasi_ctx.get_allowed_dns().is_empty() {
                 ptr::null_mut()
             } else {
-                self.wasi_ctx.get_allowed_dns().as_ptr() as *mut *const i8
+                self.wasi_ctx.get_allowed_dns().as_ptr() as *mut *const c_char
             };
 
             wasm_runtime_set_wasi_ns_lookup_pool(
@@ -139,7 +139,7 @@ impl Module {
             let addr_pool = if self.wasi_ctx.get_allowed_address().is_empty() {
                 ptr::null_mut()
             } else {
-                self.wasi_ctx.get_allowed_address().as_ptr() as *mut *const i8
+                self.wasi_ctx.get_allowed_address().as_ptr() as *mut *const c_char
             };
             wasm_runtime_set_wasi_addr_pool(
                 self.get_inner_module(),
