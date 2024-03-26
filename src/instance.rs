@@ -124,7 +124,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary);
+        let module = Module::from_buf(&runtime, &binary, "add");
         assert!(module.is_ok());
 
         let module = &module.unwrap();
@@ -165,7 +165,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary);
+        let module = Module::from_buf(&runtime, &binary, "");
         assert!(module.is_ok());
 
         let module = &module.unwrap();
@@ -207,7 +207,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary);
+        let module = Module::from_buf(&runtime, &binary, "add");
         assert!(module.is_ok());
 
         let module = &module.unwrap();
