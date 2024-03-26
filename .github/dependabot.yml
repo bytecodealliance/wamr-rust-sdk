@@ -1,0 +1,45 @@
+# Copyright (C) 2019 Intel Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+version: 2
+updates:
+
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "cargo"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "cargo"
+  directory: "/examples/wasi-hello"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "cargo"
+  directory: "/resources/test/add-extra/"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "cargo"
+  directory: "/resources/test/gcd/"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "gitsubmodule"
+  directory: "/crates/wamr-sys/wasm-micro-runtime/"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "docker"
+  directory: "/.devcontainer"
+  schedule:
+    interval: "weekly"
+
+- package-ecosystem: "devcontainers"
+  directory: "/"
+  schedule:
+    interval: "weekly"
