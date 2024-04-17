@@ -14,9 +14,9 @@ fn main() {
     let wamr_root = wamr_root.join("wasm-micro-runtime");
     assert!(wamr_root.exists());
 
-    let build_wamr = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
+    let is_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
 
-    if build_wamr {
+    if is_espidf {
         let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
         // TODO: define LLVM_DIR
         let dst = Config::new(&wamr_root)
