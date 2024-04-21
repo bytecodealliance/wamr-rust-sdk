@@ -33,15 +33,23 @@ impl HostFunctionList {
         }
     }
 
-    pub fn register_host_function(&mut self, function_name: &str, function_ptr: *mut c_void) {
+    pub fn register_host_function(
+        &mut self,
+        function_name: &str,
+        function_ptr: *mut c_void,
+        signature: CString,
+    ) {
         self.host_functions.push(HostFunction {
             function_name: CString::new(function_name).unwrap(),
             function_ptr,
         });
 
         let last = self.host_functions.last().unwrap();
-        self.native_symbols
-            .push(pack_host_function(&(last.function_name), function_ptr));
+        self.native_symbols.push(pack_host_function(
+            &(last.function_name),
+            function_ptr,
+            signature,
+        ));
     }
 
     pub fn get_native_symbols(&mut self) -> &mut Vec<NativeSymbol> {
@@ -53,11 +61,15 @@ impl HostFunctionList {
     }
 }
 
-pub fn pack_host_function(function_name: &CString, function_ptr: *mut c_void) -> NativeSymbol {
+pub fn pack_host_function(
+    function_name: &CString,
+    function_ptr: *mut c_void,
+    signature: CString,
+) -> NativeSymbol {
     NativeSymbol {
         symbol: function_name.as_ptr(),
         func_ptr: function_ptr,
-        signature: ptr::null(),
+        signature: signature.into_raw(),
         attachment: ptr::null_mut(),
     }
 }
@@ -80,7 +92,7 @@ mod tests {
     fn test_host_function() {
         let runtime = Runtime::builder()
             .use_system_allocator()
-            .register_host_function("extra", extra as *mut c_void)
+            .register_host_function("extra", extra as *mut c_void, CString::new("()i").unwrap())
             .build()
             .unwrap();
 
