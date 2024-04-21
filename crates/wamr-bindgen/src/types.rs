@@ -34,7 +34,7 @@ impl WAMRTypes {
                 let string_cast = match destination
                     .to_token_stream()
                     .to_string()
-                    .replace(" ", "")
+                    .replace(' ', "")
                     .as_str()
                 {
                     "String" => quote! {
