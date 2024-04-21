@@ -1,0 +1,22 @@
+[package]
+name = "wamr-bindgen"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+autotests = true
+
+[lib]
+proc-macro = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+trybuild = "1.0.91"
+wamr-sys = { path = "../wamr-sys/" }
+
+[dependencies]
+syn = { version="2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+trybuild = "1.0.91"
