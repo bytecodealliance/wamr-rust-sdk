@@ -111,7 +111,7 @@
 //!     value::WasmValue, RuntimeError
 //! };
 //! use std::path::PathBuf;
-//! use std::ffi::c_void;
+//! use std::ffi::{c_void, CString};
 //!
 //! extern "C" fn extra() -> i32 {
 //!     100
@@ -120,7 +120,7 @@
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::builder()
 //!         .use_system_allocator()
-//!         .register_host_function("extra", extra as *mut c_void, "()i")
+//!         .register_host_function("extra", extra as *mut c_void, CString::new("()i").unwrap())
 //!         .build()?;
 //!
 //!     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
