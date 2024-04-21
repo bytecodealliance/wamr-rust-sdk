@@ -154,6 +154,8 @@ pub mod runtime;
 pub mod value;
 pub mod wasi_context;
 
+pub use wamr_bindgen::{impl_bindgen, function_bindgen};
+
 /// all kinds of exceptions raised by WAMR
 #[derive(Debug)]
 pub enum RuntimeError {
