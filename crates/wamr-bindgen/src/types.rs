@@ -127,7 +127,7 @@ impl From<&Type> for WAMRTypes {
                 }
             }
             Type::Reference(ref reference) => {
-                if reference.elem.deref() == &parse_str::<Type>("str").unwrap()
+                if reference.elem.deref().to_token_stream().to_string() == "str"
                     && reference.mutability.is_none()
                 {
                     WAMRTypes::String

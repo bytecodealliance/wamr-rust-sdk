@@ -68,8 +68,8 @@ impl BindingFunction {
             .collect();
 
         self.return_value = function.get_return_type().as_ref().map(|return_type| {
-            let wamr_type = WAMRTypes::from(return_type.deref());
-            (return_type.deref().clone(), wamr_type)
+            let wamr_type = WAMRTypes::from(return_type);
+            (return_type.clone(), wamr_type)
         });
     }
 
@@ -153,7 +153,7 @@ impl BindingFunction {
             })
     }
 
-    pub fn get_binding_function(&self, structure: Option<&Ident>) -> TokenStream {
+    pub fn get_binding_function(&self) -> TokenStream {
         let binding_function_name = self.get_binding_function_name();
         let casts = self.get_casts();
 

@@ -12,7 +12,6 @@ mod binding_function;
 use binding_function::BindingFunction;
 
 mod function_trait;
-use function_trait::*;
 
 #[proc_macro_attribute]
 pub fn impl_bindgen(
@@ -48,7 +47,7 @@ pub fn impl_bindgen(
         .iter()
         .map(|binding_function| {
             let signature = binding_function.get_signature_declaration();
-            let binding_function = binding_function.get_binding_function(Some(&identifier));
+            let binding_function = binding_function.get_binding_function();
             quote! {
                 #signature;
 
@@ -81,7 +80,7 @@ pub fn function_bindgen(
 
     let signature = binding_function.get_signature_declaration();
 
-    let binding_function = binding_function.get_binding_function(None);
+    let binding_function = binding_function.get_binding_function();
 
     let gen = quote! {
 
