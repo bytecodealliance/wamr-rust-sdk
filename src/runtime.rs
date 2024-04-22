@@ -7,7 +7,7 @@
 //! Every process should have only one instance of this runtime by call
 //! `Runtime::new()` or `Runtime::builder().build()` once.
 
-use std::ffi::{c_void, CString};
+use std::ffi::c_void;
 use std::sync::Mutex;
 
 use wamr_sys::{
@@ -130,10 +130,9 @@ impl RuntimeBuilder {
         mut self,
         function_name: &str,
         function_ptr: *mut c_void,
-        signature: CString,
     ) -> RuntimeBuilder {
         self.host_functions
-            .register_host_function(function_name, function_ptr, signature);
+            .register_host_function(function_name, function_ptr);
         self
     }
 

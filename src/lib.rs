@@ -120,7 +120,7 @@
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::builder()
 //!         .use_system_allocator()
-//!         .register_host_function("extra", extra as *mut c_void, CString::new("()i").unwrap())
+//!         .register_host_function("extra", extra as *mut c_void)
 //!         .build()?;
 //!
 //!     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -154,7 +154,7 @@ pub mod runtime;
 pub mod value;
 pub mod wasi_context;
 
-pub use wamr_bindgen::{function_bindgen, impl_bindgen};
+pub use wamr_bindgen::{impl_bindgen, function_bindgen};
 
 /// all kinds of exceptions raised by WAMR
 #[derive(Debug)]
