@@ -92,25 +92,40 @@ impl Instance {
         Ok(Instance { instance })
     }
 
-    pub fn validate_app_string_address(&self, address: u64) -> bool {
-        unsafe { wasm_runtime_validate_app_str_addr(self.get_inner_instance(), address) }
+    pub fn validate_app_string_address(&self, address: u32) -> bool {
+        unsafe { wasm_runtime_validate_app_str_addr(self.get_inner_instance(), address as u64) }
     }
 
-    pub fn validate_app_address(&self, address: u64, size: u64) -> bool {
-        unsafe { wasm_runtime_validate_app_addr(self.get_inner_instance(), address, size) }
+    pub fn validate_app_address(&self, address: u32, size: u64) -> bool {
+        unsafe { wasm_runtime_validate_app_addr(self.get_inner_instance(), address as u64, size) }
     }
 
-    pub fn app_to_native_address(&self, address: u64) -> *mut c_void {
-        unsafe { wasm_runtime_addr_app_to_native(self.get_inner_instance(), address) }
+    pub fn app_to_native_address(&self, address: u32) -> *mut c_void {
+        unsafe { wasm_runtime_addr_app_to_native(self.get_inner_instance(), address as u64) }
     }
 
-    pub fn app_to_native_ref<T>(&self, address: u64) -> &'static T {
+    pub fn app_to_native_ref<T>(&self, address: u32) -> &'static T {
         let p: *const T = self.app_to_native_address(address) as *mut T;
         unsafe { transmute(&*p) }
     }
 
-    pub fn app_to_native_ref_mut<T>(&self, address: u64) -> &'static mut T {
+    pub fn app_to_native_ref_mut<T>(&self, address: u32) -> &'static mut T {
         let p: *mut T = self.app_to_native_address(address) as *mut T;
+        unsafe { transmute(&mut *p) }
+    }
+
+    pub fn app_to_native_str(&self, address: u32) -> &'static str {
+        let p: *const c_char = self.app_to_native_address(address) as *mut c_char;
+        unsafe { std::ffi::CStr::from_ptr(p).to_str().unwrap() }
+    }
+
+    pub fn get_native_ref<T>(address: u64) -> &'static T {
+        let p: *mut T = address as *mut T;
+        unsafe { transmute(&mut *p) }
+    }
+
+    pub fn get_native_ref_mut<T>(address: u64) -> &'static mut T {
+        let p: *mut T = address as *mut T;
         unsafe { transmute(&mut *p) }
     }
 
