@@ -14,27 +14,31 @@ fn main() {
     let wamr_root = wamr_root.join("wasm-micro-runtime");
     assert!(wamr_root.exists());
 
-    let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
-    // TODO: define LLVM_DIR
-    let dst = Config::new(&wamr_root)
-        // running mode
-        .define("WAMR_BUILD_AOT", "1")
-        .define("WAMR_BUILD_INTERP", "1")
-        .define("WAMR_BUILD_FAST_INTERP", "1")
-        .define("WAMR_BUILD_JIT", enable_llvm_jit)
-        // mvp
-        .define("WAMR_BUILD_BULK_MEMORY", "1")
-        .define("WAMR_BUILD_REF_TYPES", "1")
-        .define("WAMR_BUILD_SIMD", "1")
-        // wasi
-        .define("WAMR_BUILD_LIBC_WASI", "1")
-        // `nostdlib`
-        .define("WAMR_BUILD_LIBC_BUILTIN", "1")
-        .build_target("iwasm_static")
-        .build();
+    let is_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
 
-    println!("cargo:rustc-link-search=native={}/build", dst.display());
-    println!("cargo:rustc-link-lib=static=vmlib");
+    if is_espidf {
+        let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
+        // TODO: define LLVM_DIR
+        let dst = Config::new(&wamr_root)
+            // running mode
+            .define("WAMR_BUILD_AOT", "1")
+            .define("WAMR_BUILD_INTERP", "1")
+            .define("WAMR_BUILD_FAST_INTERP", "1")
+            .define("WAMR_BUILD_JIT", enable_llvm_jit)
+            // mvp
+            .define("WAMR_BUILD_BULK_MEMORY", "1")
+            .define("WAMR_BUILD_REF_TYPES", "1")
+            .define("WAMR_BUILD_SIMD", "1")
+            // wasi
+            .define("WAMR_BUILD_LIBC_WASI", "1")
+            // `nostdlib`
+            .define("WAMR_BUILD_LIBC_BUILTIN", "1")
+            .build_target("iwasm_static")
+            .build();
+
+        println!("cargo:rustc-link-search=native={}/build", dst.display());
+        println!("cargo:rustc-link-lib=static=vmlib");
+    }
 
     //TODO: support macos?
     if cfg!(feature = "llvmjit") {
