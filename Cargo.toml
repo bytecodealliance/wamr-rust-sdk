@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 [workspace]
-members = ["crates/wamr-sys"]
+members = [ "crates/wamr-bindgen","crates/wamr-sys"]
 exclude = [
     "examples/wasi-hello",
     "resources/test/gcd",
@@ -30,6 +30,16 @@ keywords = ["api-bindings", "wasm", "webassembly"]
 
 [dependencies]
 wamr-sys = { path = "crates/wamr-sys", version = "0.1.0" }
+wamr-bindgen = { path = "crates/wamr-bindgen", version = "0.1.0" }
+
+[target.'cfg( target_os = "espidf" )'.dependencies]
+esp-idf-sys = { version = "0.34" }
+
+[[package.metadata.esp-idf-sys.extra_components]]
+bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_export.h"
+component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
+
+
 
 [target.'cfg( target_os = "espidf" )'.dependencies]
 esp-idf-sys = { version = "0.34" }
