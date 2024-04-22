@@ -45,15 +45,7 @@ pub fn impl_bindgen(
 
     let binding_functions_declaration = binding_functions
         .iter()
-        .map(|binding_function| {
-            let signature = binding_function.get_signature_declaration();
-            let binding_function = binding_function.get_binding_function();
-            quote! {
-                #signature;
-
-                #binding_function
-            }
-        })
+        .map(|binding_function| binding_function.get_binding_function())
         .collect::<Vec<TokenStream>>();
 
     let gen = quote! {
@@ -78,15 +70,12 @@ pub fn function_bindgen(
 
     let binding_function = BindingFunction::new_function(&function);
 
-    let signature = binding_function.get_signature_declaration();
-
     let binding_function = binding_function.get_binding_function();
 
     let gen = quote! {
 
         #item
 
-        #signature;
 
         #binding_function
     };

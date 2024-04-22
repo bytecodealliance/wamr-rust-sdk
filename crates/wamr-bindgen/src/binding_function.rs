@@ -73,13 +73,6 @@ impl BindingFunction {
         });
     }
 
-    fn arguments_type_string(&self) -> String {
-        self.arguments
-            .iter()
-            .map(|(_, _, wamr_type)| wamr_type.to_string())
-            .collect()
-    }
-
     pub fn get_casts(&self) -> TokenStream {
         let casts = self
             .arguments
@@ -91,24 +84,6 @@ impl BindingFunction {
 
         quote! {
             #(#casts)*
-        }
-    }
-
-    pub fn get_signature_declaration(&self) -> TokenStream {
-        let signature = self
-            .return_value
-            .as_ref()
-            .map_or(self.arguments_type_string(), |(_, r)| {
-                format!("({}){}", self.arguments_type_string(), r.to_string())
-            });
-
-        let name = format_ident!(
-            "__WAMR_BINDGEN_{}_SIGNATURE",
-            self.identifier.to_string().to_uppercase()
-        );
-
-        quote! {
-            const #name: &'static str = #signature
         }
     }
 
