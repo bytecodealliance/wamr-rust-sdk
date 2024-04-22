@@ -8,7 +8,6 @@
 //! `Runtime::new()` or `Runtime::builder().build()` once.
 
 use std::ffi::c_void;
-use std::sync::Mutex;
 
 use wamr_sys::{
     mem_alloc_type_t_Alloc_With_Pool, mem_alloc_type_t_Alloc_With_System_Allocator,
@@ -23,8 +22,6 @@ use crate::{host_function::HostFunctionList, RuntimeError};
 pub struct Runtime {
     host_functions: HostFunctionList,
 }
-
-static SINGLETON_REF_CNT: Mutex<i32> = Mutex::new(0);
 
 impl Runtime {
     /// return a `RuntimeBuilder` instance
@@ -44,34 +41,19 @@ impl Runtime {
     ///
     /// if the runtime initialization failed, it will return `RuntimeError::InitializationFailure`
     pub fn new() -> Result<Self, RuntimeError> {
-        let mut ref_cnt = SINGLETON_REF_CNT.lock().unwrap();
-
-        *ref_cnt += 1;
-
-        match *ref_cnt {
-            1 => match unsafe { wasm_runtime_init() } {
-                true => Ok(Runtime {
-                    host_functions: HostFunctionList::new("empty"),
-                }),
-                false => Err(RuntimeError::InitializationFailure),
-            },
-            _ => Ok(Runtime {
+        match unsafe { wasm_runtime_init() } {
+            true => Ok(Runtime {
                 host_functions: HostFunctionList::new("empty"),
             }),
+            false => Err(RuntimeError::InitializationFailure),
         }
     }
 }
 
 impl Drop for Runtime {
     fn drop(&mut self) {
-        let mut ref_cnt = SINGLETON_REF_CNT.lock().unwrap();
-
-        *ref_cnt -= 1;
-
-        if *ref_cnt == 0 {
-            unsafe {
-                wasm_runtime_destroy();
-            }
+        unsafe {
+            wasm_runtime_destroy();
         }
     }
 }
@@ -142,29 +124,20 @@ impl RuntimeBuilder {
     ///
     /// if the runtime initialization failed, it will return `RuntimeError::InitializationFailure`
     pub fn build(mut self) -> Result<Runtime, RuntimeError> {
-        let mut ref_cnt = SINGLETON_REF_CNT.lock().unwrap();
+        match unsafe {
+            let module_name = &(self.host_functions).get_module_name();
+            self.args.native_module_name = module_name.as_ptr();
 
-        *ref_cnt += 1;
+            let native_symbols = &(self.host_functions).get_native_symbols();
+            self.args.n_native_symbols = native_symbols.len() as u32;
+            self.args.native_symbols = native_symbols.as_ptr() as *mut NativeSymbol;
 
-        match *ref_cnt {
-            1 => match unsafe {
-                let module_name = &(self.host_functions).get_module_name();
-                self.args.native_module_name = module_name.as_ptr();
-
-                let native_symbols = &(self.host_functions).get_native_symbols();
-                self.args.n_native_symbols = native_symbols.len() as u32;
-                self.args.native_symbols = native_symbols.as_ptr() as *mut NativeSymbol;
-
-                wasm_runtime_full_init(&mut self.args)
-            } {
-                true => Ok(Runtime {
-                    host_functions: self.host_functions,
-                }),
-                false => Err(RuntimeError::InitializationFailure),
-            },
-            _ => Ok(Runtime {
+            wasm_runtime_full_init(&mut self.args)
+        } {
+            true => Ok(Runtime {
                 host_functions: self.host_functions,
             }),
+            false => Err(RuntimeError::InitializationFailure),
         }
     }
 }
