@@ -172,7 +172,8 @@ impl BindingFunction {
         quote! {
             #[no_mangle]
             pub unsafe extern "C" fn #binding_function_name(__wamr_environment : wamr_sys::wasm_exec_env_t, #(#binding_function_arguments),*) -> #return_value {
-                let __wamr_instance = unsafe { wamr_sys::wasm_runtime_get_module_inst(__wamr_environment) };
+                let __wamr_environment = wamr_rust_sdk::execution_environment::ExecutionEnvironment::from(__wamr_environment);
+                let __wamr_instance = __wamr_environment.get_instance();
 
                 #casts
 

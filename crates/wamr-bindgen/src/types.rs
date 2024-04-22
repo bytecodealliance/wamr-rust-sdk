@@ -26,9 +26,7 @@ impl WAMRTypes {
             }
             WAMRTypes::String => {
                 let string_cast = quote! {
-                    let #identifier = unsafe {
-                        std::ffi::CStr::from_ptr(#identifier as *const i8)
-                    }.to_str().unwrap()
+                    let #identifier = __wamr_instance.app_to_native_str(#identifier)
                 };
 
                 let string_cast = match destination
@@ -41,7 +39,7 @@ impl WAMRTypes {
                         #string_cast.to_string();
                     },
                     "&str" => quote! {
-                        #string_cast;
+                    #string_cast;
                     },
                     _ => panic!(
                         "Invalid destination type: {}",
@@ -49,15 +47,7 @@ impl WAMRTypes {
                     ),
                 };
 
-                quote! {
-                    assert!( unsafe { wamr_sys::wasm_runtime_validate_app_str_addr(__wamr_instance, #identifier) } , "Invalid pointer");
-
-                    let #identifier: *const char
-                     = unsafe {
-                        std::mem::transmute(wamr_sys::wasm_runtime_addr_app_to_native(__wamr_instance, #identifier))
-                    };
-                    #string_cast
-                }
+                string_cast
             }
             WAMRTypes::Pointer => {
                 let destination_element = match destination {
@@ -69,17 +59,12 @@ impl WAMRTypes {
                 };
 
                 quote! {
-                    assert!( unsafe { wamr_sys::wasm_runtime_validate_app_addr(__wamr_instance, #identifier, std::mem::size_of::<#destination_element>() as u32) } , "Invalid pointer");
-
-                    let #identifier: #destination = unsafe {
-                        std::mem::transmute(wamr_sys::wasm_runtime_addr_app_to_native(__wamr_instance, #identifier))
-                    };
-
+                    let #identifier : &#destination_element = __wamr_instance.app_to_native_ref(#identifier);
                 }
             }
             WAMRTypes::NativeReference => {
                 quote! {
-                    let #identifier: #destination = unsafe { std::mem::transmute(#identifier) };
+                    let #identifier: &#destination = wamr_bindgen::instance::Instance::get_native_ref(#identifier);
                 }
             }
         }
