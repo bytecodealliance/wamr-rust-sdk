@@ -9,10 +9,12 @@
 #![allow(unused_variables)]
 
 use core::ffi::c_char;
+use std::{mem::transmute, os::raw::c_void};
 
 use wamr_sys::{
-    wasm_module_inst_t, wasm_runtime_deinstantiate, wasm_runtime_destroy_thread_env,
-    wasm_runtime_init_thread_env, wasm_runtime_instantiate,
+    wasm_module_inst_t, wasm_runtime_addr_app_to_native, wasm_runtime_deinstantiate,
+    wasm_runtime_destroy_thread_env, wasm_runtime_init_thread_env, wasm_runtime_instantiate,
+    wasm_runtime_validate_app_addr, wasm_runtime_validate_app_str_addr,
 };
 
 use crate::{
@@ -23,6 +25,12 @@ use crate::{
 #[derive(Debug)]
 pub struct Instance {
     instance: wasm_module_inst_t,
+}
+
+impl From<wasm_module_inst_t> for Instance {
+    fn from(instance: wasm_module_inst_t) -> Self {
+        Self { instance }
+    }
 }
 
 impl Instance {
@@ -82,6 +90,28 @@ impl Instance {
         }
 
         Ok(Instance { instance })
+    }
+
+    pub fn validate_app_string_address(&self, address: u64) -> bool {
+        unsafe { wasm_runtime_validate_app_str_addr(self.get_inner_instance(), address) }
+    }
+
+    pub fn validate_app_address(&self, address: u64, size: u64) -> bool {
+        unsafe { wasm_runtime_validate_app_addr(self.get_inner_instance(), address, size) }
+    }
+
+    pub fn app_to_native_address(&self, address: u64) -> *mut c_void {
+        unsafe { wasm_runtime_addr_app_to_native(self.get_inner_instance(), address) }
+    }
+
+    pub fn app_to_native_ref<T>(&self, address: u64) -> &'static T {
+        let p: *const T = self.app_to_native_address(address) as *mut T;
+        unsafe { transmute(&*p) }
+    }
+
+    pub fn app_to_native_ref_mut<T>(&self, address: u64) -> &'static mut T {
+        let p: *mut T = self.app_to_native_address(address) as *mut T;
+        unsafe { transmute(&mut *p) }
     }
 
     pub fn get_inner_instance(&self) -> wasm_module_inst_t {

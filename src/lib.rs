@@ -145,6 +145,7 @@ use std::error;
 use std::fmt;
 use std::io;
 
+pub mod execution_environment;
 pub mod function;
 mod helper;
 pub mod host_function;
@@ -154,7 +155,7 @@ pub mod runtime;
 pub mod value;
 pub mod wasi_context;
 
-pub use wamr_bindgen::{impl_bindgen, function_bindgen};
+pub use wamr_bindgen::{function_bindgen, impl_bindgen};
 
 /// all kinds of exceptions raised by WAMR
 #[derive(Debug)]
