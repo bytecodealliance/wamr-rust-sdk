@@ -9,5 +9,4 @@ license = "Apache-2.0 WITH LLVM-exception"
 authors = ["The WAMR Project Developers"]
 
 [dependencies]
-# FIXME: after merging the PR, we should use the official wasi-sdk crate
-wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", branch = "main" }
+wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", tag = "v1.0.0" }

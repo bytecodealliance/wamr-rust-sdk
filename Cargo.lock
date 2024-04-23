@@ -874,7 +874,7 @@ dependencies = [
 
 [[package]]
 name = "wamr-rust-sdk"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "esp-idf-sys",
  "wamr-sys",
@@ -882,7 +882,7 @@ dependencies = [
 
 [[package]]
 name = "wamr-sys"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bindgen 0.69.4",
  "cc",
