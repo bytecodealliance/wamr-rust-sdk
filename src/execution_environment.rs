@@ -1,5 +1,6 @@
 use wamr_sys::{
     wasm_exec_env_t, wasm_runtime_get_call_stack_buf_size, wasm_runtime_get_exec_env_singleton,
+    wasm_runtime_get_user_data, wasm_runtime_set_user_data,
 };
 
 use crate::instance::Instance;
@@ -17,8 +18,11 @@ impl ExecutionEnvironment {
     ///
     /// # Safety
     /// Be careful when using this function, as it can lead to undefined behavior if misused.
-    pub unsafe fn set_user_data(&self, user_data: *mut std::ffi::c_void) {
-        wamr_sys::wasm_runtime_set_user_data(self.get_inner_execution_environment(), user_data);
+    pub unsafe fn set_user_data<T>(&self, user_data: &mut T) {
+        wasm_runtime_set_user_data(
+            self.get_inner_execution_environment(),
+            user_data as *mut T as *mut std::ffi::c_void,
+        );
     }
 
     /// Get user data for the current execution environment.
@@ -27,8 +31,10 @@ impl ExecutionEnvironment {
     ///
     /// # Safety
     /// Be careful when using this function, as it can lead to undefined behavior if misused.
-    pub unsafe fn get_user_data(&self) -> *mut std::ffi::c_void {
-        wamr_sys::wasm_runtime_get_user_data(self.get_inner_execution_environment())
+    #[allow(clippy::mut_from_ref)]
+    pub unsafe fn get_user_data<T>(&self) -> Option<&mut T> {
+        let pointer = wasm_runtime_get_user_data(self.get_inner_execution_environment()) as *mut T;
+        pointer.as_mut()
     }
 
     pub fn get_call_stack_buffer_size(&self) -> usize {
