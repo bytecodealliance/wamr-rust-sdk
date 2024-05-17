@@ -27,7 +27,7 @@ pub struct Instance {
 
 impl Instance {
     /// This function get the execution environment from the instance.
-    pub fn from_execution_environment(execution_environment: ExecutionEnvironment) -> Self {
+    pub fn from_execution_environment(execution_environment: &ExecutionEnvironment) -> Self {
         Self {
             instance: unsafe {
                 wasm_runtime_get_module_inst(

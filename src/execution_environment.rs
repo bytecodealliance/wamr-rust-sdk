@@ -8,7 +8,7 @@ use crate::instance::Instance;
 pub struct ExecutionEnvironment(wasm_exec_env_t);
 
 impl ExecutionEnvironment {
-    pub fn from_instance(instance: Instance) -> Self {
+    pub fn from_instance(instance: &Instance) -> Self {
         Self(unsafe { wasm_runtime_get_exec_env_singleton(instance.get_inner_instance()) })
     }
 
