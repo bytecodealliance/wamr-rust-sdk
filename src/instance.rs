@@ -12,12 +12,12 @@ use core::ffi::c_char;
 
 use wamr_sys::{
     wasm_module_inst_t, wasm_runtime_deinstantiate, wasm_runtime_destroy_thread_env,
-    wasm_runtime_init_thread_env, wasm_runtime_instantiate,
+    wasm_runtime_get_module_inst, wasm_runtime_init_thread_env, wasm_runtime_instantiate,
 };
 
 use crate::{
-    helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, module::Module, runtime::Runtime,
-    RuntimeError,
+    execution_environment::ExecutionEnvironment, helper::error_buf_to_string,
+    helper::DEFAULT_ERROR_BUF_SIZE, module::Module, runtime::Runtime, RuntimeError,
 };
 
 #[derive(Debug)]
@@ -26,6 +26,17 @@ pub struct Instance {
 }
 
 impl Instance {
+    /// This function get the execution environment from the instance.
+    pub fn from_execution_environment(execution_environment: ExecutionEnvironment) -> Self {
+        Self {
+            instance: unsafe {
+                wasm_runtime_get_module_inst(
+                    execution_environment.get_inner_execution_environment(),
+                )
+            },
+        }
+    }
+
     /// instantiate a module with stack size
     ///
     /// # Error

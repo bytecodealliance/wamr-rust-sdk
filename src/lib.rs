@@ -145,6 +145,7 @@ use std::error;
 use std::fmt;
 use std::io;
 
+pub mod execution_environment;
 pub mod function;
 mod helper;
 pub mod host_function;
