@@ -1,0 +1,8 @@
+# Copyright (C) 2019 Intel Corporation. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+[target.wasm32-wasi]
+rustflags = [
+  "-C", "link-arg=--export=malloc",
+  "-C", "link-arg=--export=free",
+]
