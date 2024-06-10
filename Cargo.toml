@@ -5,8 +5,9 @@
 members = ["crates/wamr-sys"]
 exclude = [
     "examples/wasi-hello",
-    "resources/test/gcd",
     "resources/test/add-extra",
+    "resources/test/gcd",
+    "resources/test/string-concat",
     ".devcontainer",
     ".github",
 ]

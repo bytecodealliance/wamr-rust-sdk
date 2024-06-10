@@ -4,14 +4,16 @@ printf "Running 'postCreateCommand' Script\n"
 printf "Installing Rust Targets\n"
 rustup update stable --no-self-update
 rustup default stable
-rustup target add wasm32-unknown-unknown
+#rustup target add wasm32-unknown-unknown
 rustup target add wasm32-wasi
 rustup component add clippy
+rustup component add rustfmt
 
 cargo install cargo-readme
+cargo install rustfilt
 
 # Install Python stuff
-printf "Installing Python Dependencies"
+printf "Installing Python Dependencies\n"
 
 # Install NPM dependencies
-printf "Installing NPM Dependencies"
+printf "Installing NPM Dependencies\n"
