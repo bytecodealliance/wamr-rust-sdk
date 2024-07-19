@@ -30,5 +30,6 @@ bindgen = "0.69"
 cc = "1.0"
 cmake = "0.1"
 
-# [features]
+[features]
+esp-idf = []
 # llvmjit = []

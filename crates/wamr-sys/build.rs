@@ -14,12 +14,34 @@ fn main() {
     let wamr_root = wamr_root.join("wasm-micro-runtime");
     assert!(wamr_root.exists());
 
-    let is_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
+    let is_espidf = env::var("CARGO_FEATURE_ESP_IDF").is_ok()
+        && env::var("CARGO_CFG_TARGET_OS").unwrap() == "espidf";
 
-    if is_espidf {
+    println!("cargo:rerun-if-env-changed=WAMR_BUILD_PLATFORM");
+    println!("cargo:rerun-if-env-changed=WAMR_SHARED_PLATFORM_CONFIG");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_ESP_IDF");
+
+    if is_espidf
+        && (env::var("WAMR_BUILD_PLATFORM").is_ok()
+            || env::var("WAMR_SHARED_PLATFORM_CONFIG").is_ok())
+    {
+        panic!("ESP-IDF build cannot use custom platform build (WAMR_BUILD_PLATFORM) or shared platform config (WAMR_SHARED_PLATFORM_CONFIG)");
+    }
+
+    if !is_espidf {
         let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
         // TODO: define LLVM_DIR
-        let dst = Config::new(&wamr_root)
+        let mut dst = Config::new(&wamr_root);
+
+        if let Ok(platform_name) = env::var("WAMR_BUILD_PLATFORM") {
+            dst.define("WAMR_BUILD_PLATFORM", &platform_name);
+        }
+
+        if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
+            dst.define("SHARED_PLATFORM_CONFIG", &platform_config);
+        }
+
+        let dst = dst
             // running mode
             .define("WAMR_BUILD_AOT", "1")
             .define("WAMR_BUILD_INTERP", "1")
