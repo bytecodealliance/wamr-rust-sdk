@@ -144,6 +144,7 @@
 use std::error;
 use std::fmt;
 use std::io;
+pub use wamr_sys as sys;
 
 pub mod function;
 mod helper;
