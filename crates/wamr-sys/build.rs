@@ -39,6 +39,7 @@ fn main() {
 
         if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
             dst.define("SHARED_PLATFORM_CONFIG", &platform_config);
+            println!("cargo:rerun-if-changed={}", platform_config);
         }
 
         let dst = dst
