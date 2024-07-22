@@ -14,7 +14,10 @@ use wamr_sys::{
     wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64, wasm_valkind_t,
 };
 
-use crate::{helper::exception_to_string, instance::Instance, value::WasmValue, RuntimeError};
+use crate::{
+    helper::alloca_wasm_data, helper::exception_to_string, helper::host_string_to_wasm_string,
+    helper::wasm_string_to_host_string, instance::Instance, value::WasmValue, RuntimeError,
+};
 
 pub struct Function {
     function: wasm_function_inst_t,
@@ -108,7 +111,9 @@ impl Function {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder};
+    use crate::{
+        helper::read_wasm_data, module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder,
+    };
     use std::path::PathBuf;
 
     #[test]
@@ -183,5 +188,114 @@ mod tests {
         let params: Vec<WasmValue> = vec![WasmValue::I32(0), WasmValue::I32(27)];
         let result = function.call(instance, &params);
         assert_eq!(result.unwrap(), WasmValue::I32(27));
+    }
+
+    /// a c string parameter in a function will be convert to i32(only).
+    /// so
+    /// - `void my_strcat(char *s1, const char *s2)` will be `func(param i32 i32)`
+    /// - `char *strcat_ex(const char *s1, const char *s2)` will be `func(param i32 i32)(result i32)`
+    ///
+    #[test]
+    fn test_func_pass_c_string() {
+        let runtime = Runtime::new().expect("create runtime failed");
+
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/test");
+        d.push("string_concat_c_wasm32_wasi.wasm");
+        let mut module = Module::from_file(&runtime, d.as_path()).expect("create module failed");
+
+        let wasi_ctx = WasiCtxBuilder::new()
+            .set_pre_open_path(vec!["."], vec![])
+            .build();
+        module.set_wasi_context(wasi_ctx);
+
+        let instance = Instance::new(&runtime, &module, 1024 * 64).expect("create instance failed");
+        let function =
+            Function::find_export_func(&instance, "my_strcat").expect("create function failed");
+
+        // rust strings -> wasm strings
+        let hello_string = "hi from ";
+        let case_string = "case #test_func_pass_c_string!";
+        let hello_wasm_string_index = host_string_to_wasm_string(&instance, &hello_string)
+            .expect("host string -> wasm string failed");
+        let case_wasm_string_index = host_string_to_wasm_string(&instance, &case_string)
+            .expect("host string -> wasm string failed");
+
+        // use index to present wasm strings
+        let params = vec![
+            WasmValue::I32(hello_wasm_string_index as i32),
+            WasmValue::I32(case_wasm_string_index as i32),
+        ];
+        // result is Void, returned is param0 ?
+        let result = function
+            .call(&instance, &params)
+            .expect("call function failed");
+        assert_eq!(result, WasmValue::Void);
+
+        // returned string is in hello_string
+        // read returned string from param 1
+        let result_host_string =
+            wasm_string_to_host_string(&instance, hello_wasm_string_index as u32)
+                .expect("wasm string -> host string failed");
+        assert_eq!(result_host_string, "hi from case #test_func_pass_c_string!");
+    }
+
+    /// a rust string parameter in a function will be convert to (i64, i32).
+    /// the first i64 is the index of the string in wasm memory, the second i32 is the length of the string.
+    ///
+    /// so
+    /// - `void my_strcat(char *s1, const char *s2)` will be `func(param i32 i32 i32 i32)`
+    ///    the first i32 is the index of s1, the second i32 is the length of s1,
+    ///    the third i32 is the index of s2, the forth i32 is the length of s2.
+    /// - `char *strcat_ex(const char *s1, const char *s2)` will be `func(param i32 i32 i32 i32 i32)`
+    ///    **TBC**: the first i32 is the RETURN_DATA. It is the serialization of (i64, i32)
+    ///    the second i32 is the index of s1, the third i32 is the length of s1,
+    ///    the forth i32 is the index of s2, the fifth i32 is the length of s2.
+    ///
+    // #[test]
+    fn test_func_pass_rust_string() {
+        let runtime = Runtime::new().expect("create runtime failed");
+
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/test");
+        d.push("string_concat_wasm32_wasi.wasm");
+        let mut module = Module::from_file(&runtime, d.as_path()).expect("create module failed");
+
+        let wasi_ctx = WasiCtxBuilder::new()
+            .set_pre_open_path(vec!["."], vec![])
+            .build();
+        module.set_wasi_context(wasi_ctx);
+
+        let instance = Instance::new(&runtime, &module, 1024 * 64).expect("create instance failed");
+        let function =
+            Function::find_export_func(&instance, "my_strcat").expect("create function failed");
+
+        // rust strings -> wasm strings
+        let hello_string = "hi from ";
+        let case_string = "case #test_func_pass_c_string!";
+        let hello_wasm_string_index = host_string_to_wasm_string(&instance, &hello_string)
+            .expect("host string -> wasm string failed");
+        let case_wasm_string_index = host_string_to_wasm_string(&instance, &case_string)
+            .expect("host string -> wasm string failed");
+
+        // (i64, i32). i64 for index, i32 for length
+        let (RETURN_DATA_index, RETURN_DATA_addr) =
+            alloca_wasm_data(&instance, 12).expect("allocated RETURN_DATA failed");
+
+        // use index to present wasm strings
+        let params = vec![
+            WasmValue::I32(RETURN_DATA_index as i32),
+            WasmValue::I32(hello_wasm_string_index as i32),
+            WasmValue::I32(hello_string.len() as i32),
+            WasmValue::I32(case_wasm_string_index as i32),
+            WasmValue::I32(case_string.len() as i32),
+        ];
+        // result is Void, returned is param0 ?
+        let result = function
+            .call(&instance, &params)
+            .expect("call function failed");
+        assert_eq!(result, WasmValue::Void);
+
+        //TODO: check RETURN_DATA
     }
 }

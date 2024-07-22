@@ -73,6 +73,23 @@ impl WasmValue {
         let binary: [u32; 4] = [binary[0], binary[1], binary[2], binary[3]];
         WasmValue::V128(unsafe { std::mem::transmute::<[u32; 4], i128>(binary) })
     }
+
+    pub fn to_i32(&self) -> i32 {
+        match *self {
+            WasmValue::I32(value) => value,
+            _ => panic!("not an i32"),
+        }
+    }
+
+    pub fn bin_to_i32(binary: Vec<u8>) -> i32 {
+        i32::from_le_bytes([binary[0], binary[1], binary[2], binary[3]])
+    }
+
+    pub fn bin_to_i64(binary: Vec<u8>) -> i64 {
+        i64::from_le_bytes([
+            binary[0], binary[1], binary[2], binary[3], binary[4], binary[5], binary[6], binary[7],
+        ])
+    }
 }
 
 #[cfg(test)]

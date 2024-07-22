@@ -23,6 +23,8 @@
   // Configure tool-specific properties.
   "customizations": {
     "settings": {
+      "editor.formatOnSave": true,
+      "editor.formatOnType": true,
       "lldb.executable": "/usr/bin/lldb",
       "terminal.integrated.shell.linux": "/bin/bash"
     },

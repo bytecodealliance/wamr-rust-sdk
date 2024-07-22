@@ -162,7 +162,7 @@ pub enum RuntimeError {
     /// Runtime initialization error.
     InitializationFailure,
     /// file operation error. usually while loading(compilation) a .wasm
-    WasmFileFSError(std::io::Error),
+    WasmFileFSError(io::Error),
     /// A compilation error. usually means that the .wasm file is invalid
     CompilationError(String),
     /// instantiation failure
@@ -171,6 +171,10 @@ pub enum RuntimeError {
     ExecutionError(String),
     /// usually returns by `find_export_func()`
     FunctionNotFound,
+    /// usually returns by `read_wasm_data()`
+    OutOfBoundAccess,
+    /// usually during host <-> wasm
+    ConvertStringError(String),
 }
 
 impl fmt::Display for RuntimeError {
@@ -183,6 +187,8 @@ impl fmt::Display for RuntimeError {
             RuntimeError::InstantiationFailure(e) => write!(f, "Wasm instantiation failure: {}", e),
             RuntimeError::ExecutionError(e) => write!(f, "Wasm execution error: {}", e),
             RuntimeError::FunctionNotFound => write!(f, "Function not found"),
+            RuntimeError::OutOfBoundAccess => write!(f, "Memory access out of bound"),
+            RuntimeError::ConvertStringError(e) => write!(f, "Convert string error: {}", e),
         }
     }
 }
