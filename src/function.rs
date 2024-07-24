@@ -184,4 +184,34 @@ mod tests {
         let result = function.call(instance, &params);
         assert_eq!(result.unwrap(), WasmValue::I32(27));
     }
+
+    #[test]
+    fn test_func_in_wasm32_wasi_w_args() {
+        let runtime = Runtime::new().unwrap();
+
+        let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        d.push("resources/test");
+        d.push("wasi-demo-app.wasm");
+        let module = Module::from_file(&runtime, d.as_path());
+        assert!(module.is_ok());
+        let mut module = module.unwrap();
+
+        let wasi_ctx = WasiCtxBuilder::new()
+            .set_pre_open_path(vec!["."], vec![])
+            .set_arguments(vec!["wasi-demo-app.wasm", "echo", "hi"])
+            .build();
+        module.set_wasi_context(wasi_ctx);
+
+        let instance = Instance::new(&runtime, &module, 1024 * 64);
+        assert!(instance.is_ok());
+        let instance: &Instance = &instance.unwrap();
+
+        let function = Function::find_export_func(instance, "_start");
+        assert!(function.is_ok());
+        let function = function.unwrap();
+
+        let result = function.call(instance, &vec![]);
+        assert!(result.is_ok());
+        println!("{:?}", result.unwrap());
+    }
 }

@@ -5,7 +5,7 @@
 
 //! prepare wasi context
 
-use std::{ffi::CString, vec::Vec};
+use std::{ffi::c_char, ffi::CString, vec::Vec};
 
 #[derive(Debug, Default)]
 struct PreOpen {
@@ -19,7 +19,11 @@ pub struct WasiCtxBuilder {
     allowed_address: Vec<CString>,
     allowed_dns: Vec<CString>,
     env: Vec<CString>,
+    // every element is a ptr to an env element
+    env_cstr_ptrs: Vec<*const c_char>,
     args: Vec<CString>,
+    // every element is a ptr to an args element
+    args_cstr_ptrs: Vec<*const c_char>,
 }
 
 #[derive(Debug, Default)]
@@ -28,7 +32,9 @@ pub struct WasiCtx {
     allowed_address: Vec<CString>,
     allowed_dns: Vec<CString>,
     env: Vec<CString>,
+    env_cstr_ptrs: Vec<*const c_char>,
     args: Vec<CString>,
+    args_cstr_ptrs: Vec<*const c_char>,
 }
 
 impl WasiCtxBuilder {
@@ -42,7 +48,9 @@ impl WasiCtxBuilder {
             allowed_address: self.allowed_address,
             allowed_dns: self.allowed_dns,
             env: self.env,
+            env_cstr_ptrs: self.env_cstr_ptrs,
             args: self.args,
+            args_cstr_ptrs: self.args_cstr_ptrs,
         }
     }
 
@@ -78,6 +86,11 @@ impl WasiCtxBuilder {
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
             .collect::<Vec<CString>>();
+        self.env_cstr_ptrs = self.
+            env
+            .iter()
+            .map(|s| s.as_ptr() as *const c_char)
+            .collect::<Vec<*const c_char>>();
 
         self
     }
@@ -114,6 +127,11 @@ impl WasiCtxBuilder {
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
             .collect::<Vec<CString>>();
+        self.args_cstr_ptrs = self
+            .args
+            .iter()
+            .map(|s| s.as_ptr() as *const c_char)
+            .collect::<Vec<*const c_char>>();
 
         self
     }
@@ -140,8 +158,16 @@ impl WasiCtx {
         &self.env
     }
 
+    pub fn get_env_vars_ptrs(&self) -> &Vec<*const c_char> {
+        &self.env_cstr_ptrs
+    }
+
     pub fn get_arguments(&self) -> &Vec<CString> {
         &self.args
+    }
+
+    pub fn get_arguments_ptrs(&self) -> &Vec<*const c_char> {
+        &self.args_cstr_ptrs
     }
 }
 
