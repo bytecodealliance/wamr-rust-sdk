@@ -122,13 +122,13 @@ impl Module {
         let env = if self.wasi_ctx.get_env_vars().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_env_vars().as_ptr() as *mut *const c_char
+            self.wasi_ctx.get_env_vars_ptrs().as_ptr() as *mut *const c_char
         };
 
         let args = if self.wasi_ctx.get_arguments().is_empty() {
             ptr::null_mut()
         } else {
-            self.wasi_ctx.get_arguments().as_ptr() as *mut *mut c_char
+            self.wasi_ctx.get_arguments_ptrs().as_ptr() as *mut *mut c_char
         };
 
         unsafe {

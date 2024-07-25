@@ -32,7 +32,7 @@ fn main() {
             // wasi
             .define("WAMR_BUILD_LIBC_WASI", "1")
             // `nostdlib`
-            .define("WAMR_BUILD_LIBC_BUILTIN", "1")
+            .define("WAMR_BUILD_LIBC_BUILTIN", "0")
             .build_target("iwasm_static")
             .build();
 
