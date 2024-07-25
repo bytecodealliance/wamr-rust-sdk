@@ -86,8 +86,8 @@ impl WasiCtxBuilder {
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
             .collect::<Vec<CString>>();
-        self.env_cstr_ptrs = self.
-            env
+        self.env_cstr_ptrs = self
+            .env
             .iter()
             .map(|s| s.as_ptr() as *const c_char)
             .collect::<Vec<*const c_char>>();

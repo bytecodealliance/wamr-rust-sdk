@@ -19,7 +19,8 @@ fn main() {
     if is_espidf {
         let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
         // TODO: define LLVM_DIR
-        let dst = Config::new(&wamr_root)
+        let mut cfg = Config::new(&wamr_root);
+        let mut cfg = cfg
             // running mode
             .define("WAMR_BUILD_AOT", "1")
             .define("WAMR_BUILD_INTERP", "1")
@@ -33,8 +34,24 @@ fn main() {
             .define("WAMR_BUILD_LIBC_WASI", "1")
             // `nostdlib`
             .define("WAMR_BUILD_LIBC_BUILTIN", "0")
-            .build_target("iwasm_static")
-            .build();
+            // for developer (uncomment when necessary)
+            // .define("WAMR_BUILD_DUMP_CALL_STACK", "1")
+            // .define("WAMR_BUILD_CUSTOM_NAME_SECTION", "1")
+            // .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", "1")
+            // hw bound checker (workaround)
+            .define("WAMR_DISABLE_HW_BOUND_CHECK", "1");
+
+        // support STDIN/STDOUT/STDERR redirect.
+        cfg = match env::var("WAMR_BH_VPRINTF") {
+            Ok(bh_vprintf) => match bh_vprintf.len() {
+                0 => cfg,
+                _ => cfg.define("WAMR_BH_VPRINTF", bh_vprintf),
+            },
+            Err(_) => cfg,
+        };
+
+        // set target and finish configuration
+        let dst = cfg.build_target("iwasm_static").build();
 
         println!("cargo:rustc-link-search=native={}/build", dst.display());
         println!("cargo:rustc-link-lib=static=vmlib");
