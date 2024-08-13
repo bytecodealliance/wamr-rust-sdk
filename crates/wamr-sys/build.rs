@@ -14,9 +14,8 @@ fn main() {
     let wamr_root = wamr_root.join("wasm-micro-runtime");
     assert!(wamr_root.exists());
 
-    let is_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
-
-    if is_espidf {
+    let no_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
+    if no_espidf {
         let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
         // TODO: define LLVM_DIR
         let mut cfg = Config::new(&wamr_root);
@@ -38,7 +37,7 @@ fn main() {
             // .define("WAMR_BUILD_DUMP_CALL_STACK", "1")
             // .define("WAMR_BUILD_CUSTOM_NAME_SECTION", "1")
             // .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", "1")
-            // hw bound checker (workaround)
+            // hw bound checker (workaround for runwasi)
             .define("WAMR_DISABLE_HW_BOUND_CHECK", "1");
 
         // support STDIN/STDOUT/STDERR redirect.
@@ -50,95 +49,100 @@ fn main() {
             Err(_) => cfg,
         };
 
+        if enable_llvm_jit == "1" {
+            let llvm_lib_path = env::var("LLVM_LIB_CFG_PATH").unwrap();
+            cfg = cfg.define("LLVM_DIR", llvm_lib_path);
+        }
+
         // set target and finish configuration
         let dst = cfg.build_target("iwasm_static").build();
 
         println!("cargo:rustc-link-search=native={}/build", dst.display());
         println!("cargo:rustc-link-lib=static=vmlib");
-    }
 
-    //TODO: support macos?
-    if cfg!(feature = "llvmjit") {
-        println!("cargo:rustc-link-lib=dylib=dl");
-        println!("cargo:rustc-link-lib=dylib=m");
-        println!("cargo:rustc-link-lib=dylib=rt");
-        println!("cargo:rustc-link-lib=dylib=stdc++");
-        println!("cargo:rustc-link-lib=dylib=z");
+        //TODO: support macos?
+        if enable_llvm_jit == "1" {
+            println!("cargo:rustc-link-lib=dylib=dl");
+            println!("cargo:rustc-link-lib=dylib=m");
+            println!("cargo:rustc-link-lib=dylib=rt");
+            println!("cargo:rustc-link-lib=dylib=stdc++");
+            println!("cargo:rustc-link-lib=dylib=z");
 
-        let llvm_dir = wamr_root.join("core/deps/llvm/build");
-        assert!(llvm_dir.exists());
+            let llvm_dir =  PathBuf::from(env::var("LLVM_LIB_CFG_PATH").unwrap());
+            assert!(llvm_dir.exists());
 
-        println!("cargo:libdir={}/lib", llvm_dir.display());
-        println!("cargo:rustc-link-search=native={}/lib", llvm_dir.display());
+            println!("cargo:libdir={}/lib", llvm_dir.display());
+            println!("cargo:rustc-link-search=native={}/lib", llvm_dir.display());
 
-        for llvm_lib in &[
-            "LLVMAggressiveInstCombine",
-            "LLVMAnalysis",
-            "LLVMAsmParser",
-            "LLVMAsmPrinter",
-            "LLVMBitReader",
-            "LLVMBitWriter",
-            "LLVMCFGuard",
-            "LLVMCodeGen",
-            "LLVMCoroutines",
-            "LLVMCoverage",
-            "LLVMDWARFLinker",
-            "LLVMDWP",
-            "LLVMDebugInfoCodeView",
-            "LLVMDebugInfoDWARF",
-            "LLVMDebugInfoGSYM",
-            "LLVMDebugInfoMSF",
-            "LLVMDebugInfoPDB",
-            "LLVMDlltoolDriver",
-            "LLVMExecutionEngine",
-            "LLVMExtensions",
-            "LLVMFileCheck",
-            "LLVMFrontendOpenACC",
-            "LLVMFrontendOpenMP",
-            "LLVMFuzzMutate",
-            "LLVMGlobalISel",
-            "LLVMIRReader",
-            "LLVMInstCombine",
-            "LLVMInstrumentation",
-            "LLVMInterfaceStub",
-            "LLVMInterpreter",
-            "LLVMJITLink",
-            "LLVMLTO",
-            "LLVMLibDriver",
-            "LLVMLineEditor",
-            "LLVMLinker",
-            "LLVMMC",
-            "LLVMMCA",
-            "LLVMMCDisassembler",
-            "LLVMMCJIT",
-            "LLVMMCParser",
-            "LLVMMIRParser",
-            "LLVMObjCARCOpts",
-            "LLVMObject",
-            "LLVMObjectYAML",
-            "LLVMOption",
-            "LLVMOrcJIT",
-            "LLVMOrcShared",
-            "LLVMOrcTargetProcess",
-            "LLVMPasses",
-            "LLVMProfileData",
-            "LLVMRuntimeDyld",
-            "LLVMScalarOpts",
-            "LLVMSelectionDAG",
-            "LLVMSymbolize",
-            "LLVMTarget",
-            "LLVMTextAPI",
-            "LLVMTransformUtils",
-            "LLVMVectorize",
-            "LLVMX86AsmParser",
-            "LLVMX86CodeGen",
-            "LLVMX86Desc",
-            "LLVMX86Disassembler",
-            "LLVMX86Info",
-            "LLVMXRay",
-            "LLVMipo",
-        ] {
-            println!("cargo:rustc-link-lib=static={}", llvm_lib);
+            for llvm_lib in &[
+                "LLVMAggressiveInstCombine",
+                "LLVMAnalysis",
+                "LLVMAsmParser",
+                "LLVMAsmPrinter",
+                "LLVMBitReader",
+                "LLVMBitWriter",
+                "LLVMCFGuard",
+                "LLVMCodeGen",
+                "LLVMCoroutines",
+                "LLVMCoverage",
+                "LLVMDWARFLinker",
+                "LLVMDWP",
+                "LLVMDebugInfoCodeView",
+                "LLVMDebugInfoDWARF",
+                "LLVMDebugInfoGSYM",
+                "LLVMDebugInfoMSF",
+                "LLVMDebugInfoPDB",
+                "LLVMDlltoolDriver",
+                "LLVMExecutionEngine",
+                "LLVMExtensions",
+                "LLVMFileCheck",
+                "LLVMFrontendOpenACC",
+                "LLVMFrontendOpenMP",
+                "LLVMFuzzMutate",
+                "LLVMGlobalISel",
+                "LLVMIRReader",
+                "LLVMInstCombine",
+                "LLVMInstrumentation",
+                "LLVMInterfaceStub",
+                "LLVMInterpreter",
+                "LLVMJITLink",
+                "LLVMLTO",
+                "LLVMLibDriver",
+                "LLVMLineEditor",
+                "LLVMLinker",
+                "LLVMMC",
+                "LLVMMCA",
+                "LLVMMCDisassembler",
+                "LLVMMCJIT",
+                "LLVMMCParser",
+                "LLVMMIRParser",
+                "LLVMObjCARCOpts",
+                "LLVMObject",
+                "LLVMObjectYAML",
+                "LLVMOption",
+                "LLVMOrcJIT",
+                "LLVMOrcShared",
+                "LLVMOrcTargetProcess",
+                "LLVMPasses",
+                "LLVMProfileData",
+                "LLVMRuntimeDyld",
+                "LLVMScalarOpts",
+                "LLVMSelectionDAG",
+                "LLVMSymbolize",
+                "LLVMTarget",
+                "LLVMTextAPI",
+                "LLVMTransformUtils",
+                "LLVMVectorize",
+                "LLVMX86AsmParser",
+                "LLVMX86CodeGen",
+                "LLVMX86Desc",
+                "LLVMX86Disassembler",
+                "LLVMX86Info",
+                "LLVMXRay",
+                "LLVMipo",
+            ] {
+                println!("cargo:rustc-link-lib=static={}", llvm_lib);
+            }
         }
     }
 

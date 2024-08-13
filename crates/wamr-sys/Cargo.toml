@@ -30,5 +30,6 @@ bindgen = "0.69"
 cc = "1.1"
 cmake = "0.1"
 
-# [features]
-# llvmjit = []
+[features]
+llvmjit = []
+std = []

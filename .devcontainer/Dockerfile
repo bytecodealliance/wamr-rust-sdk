@@ -5,7 +5,10 @@ ENV TZ=Asian/Shanghai
 
 RUN apt-get update \
   && apt-get upgrade -y \
-  && apt-get install --no-install-recommends -y cmake
+  && apt-get install --no-install-recommends -y cmake gnupg lsb-release software-properties-common wget
 
-# Fix "Unable to find libclang" issue
-RUN apt-get install --no-install-recommends -y clang-11
+RUN cd /tmp \
+  && wget https://apt.llvm.org/llvm.sh \
+  && chmod a+x llvm.sh \
+  && ./llvm.sh 15
+

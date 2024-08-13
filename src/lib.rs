@@ -40,8 +40,8 @@
 //! ### WAMR private concepts
 //!
 //! - *loading linking* instead of *instantiation linking*. *instantiation linking* is
-//! used in Wasm JS API and Wasm C API. It means that every instance has its own, maybe
-//! variant, imports. But *loading linking* means that all instances share the same *imports*.
+//!   used in Wasm JS API and Wasm C API. It means that every instance has its own, maybe
+//!   variant, imports. But *loading linking* means that all instances share the same *imports*.
 //!
 //! - *RuntimeArg*. Control runtime behavior.
 //!   - *running mode*.

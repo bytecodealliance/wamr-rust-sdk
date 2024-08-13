@@ -38,5 +38,5 @@ esp-idf-sys = { version = "0.35" }
 bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_export.h"
 component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
 
-# [features]
-# llvmjit = ["wamr-sys/llvmjit"]
+[features]
+llvmjit = ["wamr-sys/llvmjit"]
