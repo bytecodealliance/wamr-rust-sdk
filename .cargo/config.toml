@@ -1,0 +1,8 @@
+[env]
+# vprintf callback. refer to https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md?plain=1#L193
+#WAMR_BH_VPRINTF = ""
+# https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/port_wamr.md#wamr-porting-guide
+#WAMR_BUILD_PLATFORM = "new OS name"
+#WAMR_SHARED_PLATFORM_CONFIG = "core/shared/platform/new os/shared_platform.cmake"
+# change it to your own LLVM lib path
+LLVM_LIB_CFG_PATH = "/usr/lib/llvm-15/cmake/"
