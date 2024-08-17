@@ -26,6 +26,7 @@ fn main() {
             .define("WAMR_BUILD_FAST_INTERP", "1")
             .define("WAMR_BUILD_JIT", enable_llvm_jit)
             // mvp
+            .define("WAMR_BUILD_MULTI_MODULE", "1")
             .define("WAMR_BUILD_BULK_MEMORY", "1")
             .define("WAMR_BUILD_REF_TYPES", "1")
             .define("WAMR_BUILD_SIMD", "1")
