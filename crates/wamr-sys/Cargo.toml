@@ -31,5 +31,9 @@ cc = "1.1"
 cmake = "0.1"
 
 [features]
+custom-section = []
+dump-call-stack = []
 llvmjit = []
+multi-module = []
+name-section = [ "custom-section" ]
 std = []
