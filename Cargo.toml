@@ -39,4 +39,8 @@ bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_
 component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
 
 [features]
+custom-section = ["wamr-sys/custom-section"]
+dump-call-stack = ["wamr-sys/dump-call-stack"]
 llvmjit = ["wamr-sys/llvmjit"]
+multi-module = ["wamr-sys/multi-module"]
+name-section = ["wamr-sys/name-section"]

@@ -15,9 +15,30 @@ fn main() {
     assert!(wamr_root.exists());
 
     let no_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
+    // because the ESP-IDF build procedure differs from the regular one (build internally by esp-idf-sys),
     if no_espidf {
+        let enable_custom_section = if cfg!(feature = "custom-section") {
+            "1"
+        } else {
+            "0"
+        };
+        let enable_dump_call_stack = if cfg!(feature = "dump-call-stack") {
+            "1"
+        } else {
+            "0"
+        };
         let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
-        // TODO: define LLVM_DIR
+        let enable_multi_module = if cfg!(feature = "multi-module") {
+            "1"
+        } else {
+            "0"
+        };
+        let enable_name_section = if cfg!(feature = "name-section") {
+            "1"
+        } else {
+            "0"
+        };
+
         let mut cfg = Config::new(&wamr_root);
         let mut cfg = cfg
             // running mode
@@ -33,12 +54,14 @@ fn main() {
             .define("WAMR_BUILD_LIBC_WASI", "1")
             // `nostdlib`
             .define("WAMR_BUILD_LIBC_BUILTIN", "0")
-            // for developer (uncomment when necessary)
-            // .define("WAMR_BUILD_DUMP_CALL_STACK", "1")
-            // .define("WAMR_BUILD_CUSTOM_NAME_SECTION", "1")
-            // .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", "1")
             // hw bound checker (workaround for runwasi)
-            .define("WAMR_DISABLE_HW_BOUND_CHECK", "1");
+            .define("WAMR_DISABLE_HW_BOUND_CHECK", "1")
+            // wamr private features
+            .define("WAMR_BUILD_MULTI_MODULE", enable_multi_module)
+            // - for developer
+            .define("WAMR_BUILD_DUMP_CALL_STACK", enable_dump_call_stack)
+            .define("WAMR_BUILD_CUSTOM_NAME_SECTION", enable_name_section)
+            .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", enable_custom_section);
 
         // support STDIN/STDOUT/STDERR redirect.
         cfg = match env::var("WAMR_BH_VPRINTF") {
@@ -68,7 +91,7 @@ fn main() {
             println!("cargo:rustc-link-lib=dylib=stdc++");
             println!("cargo:rustc-link-lib=dylib=z");
 
-            let llvm_dir =  PathBuf::from(env::var("LLVM_LIB_CFG_PATH").unwrap());
+            let llvm_dir = PathBuf::from(env::var("LLVM_LIB_CFG_PATH").unwrap());
             assert!(llvm_dir.exists());
 
             println!("cargo:libdir={}/lib", llvm_dir.display());
