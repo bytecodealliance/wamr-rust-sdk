@@ -14,9 +14,21 @@ fn main() {
     let wamr_root = wamr_root.join("wasm-micro-runtime");
     assert!(wamr_root.exists());
 
-    let no_espidf = env::var("CARGO_CFG_TARGET_OS").unwrap() != "espidf";
+    println!("cargo:rerun-if-env-changed=WAMR_BUILD_PLATFORM");
+    println!("cargo:rerun-if-env-changed=WAMR_SHARED_PLATFORM_CONFIG");
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_ESP_IDF");
+
+    let is_espidf = env::var("CARGO_FEATURE_ESP_IDF").is_ok()
+        && env::var("CARGO_CFG_TARGET_OS").unwrap() == "espidf";
+
+    if is_espidf
+        && (env::var("WAMR_BUILD_PLATFORM").is_ok()
+            || env::var("WAMR_SHARED_PLATFORM_CONFIG").is_ok())
+    {
+        panic!("ESP-IDF build cannot use custom platform build (WAMR_BUILD_PLATFORM) or shared platform config (WAMR_SHARED_PLATFORM_CONFIG)");
+    }
     // because the ESP-IDF build procedure differs from the regular one (build internally by esp-idf-sys),
-    if no_espidf {
+    else {
         let enable_custom_section = if cfg!(feature = "custom-section") {
             "1"
         } else {
@@ -62,6 +74,15 @@ fn main() {
             .define("WAMR_BUILD_DUMP_CALL_STACK", enable_dump_call_stack)
             .define("WAMR_BUILD_CUSTOM_NAME_SECTION", enable_name_section)
             .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", enable_custom_section);
+
+        if let Ok(platform_name) = env::var("WAMR_BUILD_PLATFORM") {
+            cfg.define("WAMR_BUILD_PLATFORM", &platform_name);
+        }
+
+        if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
+            cfg.define("SHARED_PLATFORM_CONFIG", &platform_config);
+            println!("cargo:rerun-if-changed={}", platform_config);
+        }
 
         // support STDIN/STDOUT/STDERR redirect.
         cfg = match env::var("WAMR_BH_VPRINTF") {
