@@ -7,17 +7,33 @@ extern crate bindgen;
 extern crate cmake;
 
 use cmake::Config;
-use std::{env, path::PathBuf};
+use std::{env, path::Path, path::PathBuf};
 
-fn main() {
-    let wamr_root = env::current_dir().unwrap();
-    let wamr_root = wamr_root.join("wasm-micro-runtime");
-    assert!(wamr_root.exists());
+const LLVM_LIBRARIES: &[&str] = &[
+    // keep alphabet order
+    "LLVMOrcJIT",
+    "LLVMOrcShared",
+    "LLVMOrcTargetProcess",
+    "LLVMPasses",
+    "LLVMProfileData",
+    "LLVMRuntimeDyld",
+    "LLVMScalarOpts",
+    "LLVMSelectionDAG",
+    "LLVMSymbolize",
+    "LLVMTarget",
+    "LLVMTextAPI",
+    "LLVMTransformUtils",
+    "LLVMVectorize",
+    "LLVMX86AsmParser",
+    "LLVMX86CodeGen",
+    "LLVMX86Desc",
+    "LLVMX86Disassembler",
+    "LLVMX86Info",
+    "LLVMXRay",
+    "LLVMipo",
+];
 
-    println!("cargo:rerun-if-env-changed=WAMR_BUILD_PLATFORM");
-    println!("cargo:rerun-if-env-changed=WAMR_SHARED_PLATFORM_CONFIG");
-    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_ESP_IDF");
-
+fn check_is_espidf() -> bool {
     let is_espidf = env::var("CARGO_FEATURE_ESP_IDF").is_ok()
         && env::var("CARGO_CFG_TARGET_OS").unwrap() == "espidf";
 
@@ -27,169 +43,127 @@ fn main() {
     {
         panic!("ESP-IDF build cannot use custom platform build (WAMR_BUILD_PLATFORM) or shared platform config (WAMR_SHARED_PLATFORM_CONFIG)");
     }
-    // because the ESP-IDF build procedure differs from the regular one (build internally by esp-idf-sys),
-    else {
-        let enable_custom_section = if cfg!(feature = "custom-section") {
-            "1"
-        } else {
-            "0"
-        };
-        let enable_dump_call_stack = if cfg!(feature = "dump-call-stack") {
-            "1"
-        } else {
-            "0"
-        };
-        let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
-        let enable_multi_module = if cfg!(feature = "multi-module") {
-            "1"
-        } else {
-            "0"
-        };
-        let enable_name_section = if cfg!(feature = "name-section") {
-            "1"
-        } else {
-            "0"
-        };
 
-        let mut cfg = Config::new(&wamr_root);
-        let mut cfg = cfg
-            // running mode
-            .define("WAMR_BUILD_AOT", "1")
-            .define("WAMR_BUILD_INTERP", "1")
-            .define("WAMR_BUILD_FAST_INTERP", "1")
-            .define("WAMR_BUILD_JIT", enable_llvm_jit)
-            // mvp
-            .define("WAMR_BUILD_BULK_MEMORY", "1")
-            .define("WAMR_BUILD_REF_TYPES", "1")
-            .define("WAMR_BUILD_SIMD", "1")
-            // wasi
-            .define("WAMR_BUILD_LIBC_WASI", "1")
-            // `nostdlib`
-            .define("WAMR_BUILD_LIBC_BUILTIN", "0")
-            // hw bound checker (workaround for runwasi)
-            .define("WAMR_DISABLE_HW_BOUND_CHECK", "1")
-            // wamr private features
-            .define("WAMR_BUILD_MULTI_MODULE", enable_multi_module)
-            // - for developer
-            .define("WAMR_BUILD_DUMP_CALL_STACK", enable_dump_call_stack)
-            .define("WAMR_BUILD_CUSTOM_NAME_SECTION", enable_name_section)
-            .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", enable_custom_section);
+    is_espidf
+}
 
-        if let Ok(platform_name) = env::var("WAMR_BUILD_PLATFORM") {
-            cfg.define("WAMR_BUILD_PLATFORM", &platform_name);
-        }
+fn get_feature_flags() -> (String, String, String, String, String) {
+    let enable_custom_section = if cfg!(feature = "custom-section") {
+        "1"
+    } else {
+        "0"
+    };
+    let enable_dump_call_stack = if cfg!(feature = "dump-call-stack") {
+        "1"
+    } else {
+        "0"
+    };
+    let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
+    let enable_multi_module = if cfg!(feature = "multi-module") {
+        "1"
+    } else {
+        "0"
+    };
+    let enable_name_section = if cfg!(feature = "name-section") {
+        "1"
+    } else {
+        "0"
+    };
 
-        if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
-            cfg.define("SHARED_PLATFORM_CONFIG", &platform_config);
-            println!("cargo:rerun-if-changed={}", platform_config);
-        }
+    (
+        enable_custom_section.to_string(),
+        enable_dump_call_stack.to_string(),
+        enable_llvm_jit.to_string(),
+        enable_multi_module.to_string(),
+        enable_name_section.to_string(),
+    )
+}
 
-        // support STDIN/STDOUT/STDERR redirect.
-        cfg = match env::var("WAMR_BH_VPRINTF") {
-            Ok(bh_vprintf) => match bh_vprintf.len() {
-                0 => cfg,
-                _ => cfg.define("WAMR_BH_VPRINTF", bh_vprintf),
-            },
-            Err(_) => cfg,
-        };
-
-        if enable_llvm_jit == "1" {
-            let llvm_lib_path = env::var("LLVM_LIB_CFG_PATH").unwrap();
-            cfg = cfg.define("LLVM_DIR", llvm_lib_path);
-        }
-
-        // set target and finish configuration
-        let dst = cfg.build_target("iwasm_static").build();
-
-        println!("cargo:rustc-link-search=native={}/build", dst.display());
-        println!("cargo:rustc-link-lib=static=vmlib");
-
-        //TODO: support macos?
-        if enable_llvm_jit == "1" {
-            println!("cargo:rustc-link-lib=dylib=dl");
-            println!("cargo:rustc-link-lib=dylib=m");
-            println!("cargo:rustc-link-lib=dylib=rt");
-            println!("cargo:rustc-link-lib=dylib=stdc++");
-            println!("cargo:rustc-link-lib=dylib=z");
-
-            let llvm_dir = PathBuf::from(env::var("LLVM_LIB_CFG_PATH").unwrap());
-            assert!(llvm_dir.exists());
-
-            println!("cargo:libdir={}/lib", llvm_dir.display());
-            println!("cargo:rustc-link-search=native={}/lib", llvm_dir.display());
-
-            for llvm_lib in &[
-                "LLVMAggressiveInstCombine",
-                "LLVMAnalysis",
-                "LLVMAsmParser",
-                "LLVMAsmPrinter",
-                "LLVMBitReader",
-                "LLVMBitWriter",
-                "LLVMCFGuard",
-                "LLVMCodeGen",
-                "LLVMCoroutines",
-                "LLVMCoverage",
-                "LLVMDWARFLinker",
-                "LLVMDWP",
-                "LLVMDebugInfoCodeView",
-                "LLVMDebugInfoDWARF",
-                "LLVMDebugInfoGSYM",
-                "LLVMDebugInfoMSF",
-                "LLVMDebugInfoPDB",
-                "LLVMDlltoolDriver",
-                "LLVMExecutionEngine",
-                "LLVMExtensions",
-                "LLVMFileCheck",
-                "LLVMFrontendOpenACC",
-                "LLVMFrontendOpenMP",
-                "LLVMFuzzMutate",
-                "LLVMGlobalISel",
-                "LLVMIRReader",
-                "LLVMInstCombine",
-                "LLVMInstrumentation",
-                "LLVMInterfaceStub",
-                "LLVMInterpreter",
-                "LLVMJITLink",
-                "LLVMLTO",
-                "LLVMLibDriver",
-                "LLVMLineEditor",
-                "LLVMLinker",
-                "LLVMMC",
-                "LLVMMCA",
-                "LLVMMCDisassembler",
-                "LLVMMCJIT",
-                "LLVMMCParser",
-                "LLVMMIRParser",
-                "LLVMObjCARCOpts",
-                "LLVMObject",
-                "LLVMObjectYAML",
-                "LLVMOption",
-                "LLVMOrcJIT",
-                "LLVMOrcShared",
-                "LLVMOrcTargetProcess",
-                "LLVMPasses",
-                "LLVMProfileData",
-                "LLVMRuntimeDyld",
-                "LLVMScalarOpts",
-                "LLVMSelectionDAG",
-                "LLVMSymbolize",
-                "LLVMTarget",
-                "LLVMTextAPI",
-                "LLVMTransformUtils",
-                "LLVMVectorize",
-                "LLVMX86AsmParser",
-                "LLVMX86CodeGen",
-                "LLVMX86Desc",
-                "LLVMX86Disassembler",
-                "LLVMX86Info",
-                "LLVMXRay",
-                "LLVMipo",
-            ] {
-                println!("cargo:rustc-link-lib=static={}", llvm_lib);
-            }
-        }
+fn link_llvm_libraries(llvm_cfg_path: &String, enable_llvm_jit: &String) {
+    if enable_llvm_jit == "0" {
+        return;
     }
 
+    let llvm_cfg_path = PathBuf::from(llvm_cfg_path);
+    assert!(llvm_cfg_path.exists());
+
+    let llvm_lib_path = llvm_cfg_path.join("../../../lib").canonicalize().unwrap();
+    assert!(llvm_lib_path.exists());
+
+    println!("cargo:rustc-link-lib=dylib=dl");
+    println!("cargo:rustc-link-lib=dylib=m");
+    println!("cargo:rustc-link-lib=dylib=rt");
+    println!("cargo:rustc-link-lib=dylib=stdc++");
+    println!("cargo:rustc-link-lib=dylib=z");
+    println!("cargo:libdir={}", llvm_lib_path.display());
+    println!("cargo:rustc-link-search=native={}", llvm_lib_path.display());
+
+    for &llvm_lib in LLVM_LIBRARIES {
+        println!("cargo:rustc-link-lib=static={}", llvm_lib);
+    }
+}
+
+fn setup_config(
+    wamr_root: &PathBuf,
+    feature_flags: (String, String, String, String, String),
+) -> Config {
+    let (
+        enable_custom_section,
+        enable_dump_call_stack,
+        enable_llvm_jit,
+        enable_multi_module,
+        enable_name_section,
+    ) = feature_flags;
+
+    let mut cfg = Config::new(wamr_root);
+    cfg.define("WAMR_BUILD_AOT", "1")
+        .define("WAMR_BUILD_INTERP", "1")
+        .define("WAMR_BUILD_FAST_INTERP", "1")
+        .define("WAMR_BUILD_JIT", &enable_llvm_jit)
+        .define("WAMR_BUILD_BULK_MEMORY", "1")
+        .define("WAMR_BUILD_REF_TYPES", "1")
+        .define("WAMR_BUILD_SIMD", "1")
+        .define("WAMR_BUILD_LIBC_WASI", "1")
+        .define("WAMR_BUILD_LIBC_BUILTIN", "0")
+        .define("WAMR_DISABLE_HW_BOUND_CHECK", "1")
+        .define("WAMR_BUILD_MULTI_MODULE", &enable_multi_module)
+        .define("WAMR_BUILD_DUMP_CALL_STACK", &enable_dump_call_stack)
+        .define("WAMR_BUILD_CUSTOM_NAME_SECTION", &enable_name_section)
+        .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", &enable_custom_section);
+
+    // always assume non-empty strings for these environment variables
+
+    if let Ok(platform_name) = env::var("WAMR_BUILD_PLATFORM") {
+        cfg.define("WAMR_BUILD_PLATFORM", &platform_name);
+    }
+
+    if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
+        cfg.define("SHARED_PLATFORM_CONFIG", &platform_config);
+    }
+
+    if let Ok(llvm_cfg_path) = env::var("LLVM_LIB_CFG_PATH") {
+        link_llvm_libraries(&llvm_cfg_path, &enable_llvm_jit);
+        cfg.define("LLVM_DIR", &llvm_cfg_path);
+    }
+
+    // STDIN/STDOUT/STDERR redirect
+    if let Ok(bh_vprintf) = env::var("WAMR_BH_VPRINTF") {
+        cfg.define("WAMR_BH_VPRINTF", &bh_vprintf);
+    }
+
+    cfg
+}
+
+fn build_wamr_libraries(wamr_root: &PathBuf) {
+    let feature_flags = get_feature_flags();
+    let mut cfg = setup_config(wamr_root, feature_flags);
+    let dst = cfg.build_target("iwasm_static").build();
+
+    println!("cargo:rustc-link-search=native={}/build", dst.display());
+    println!("cargo:rustc-link-lib=static=vmlib");
+}
+
+fn generate_bindings(wamr_root: &Path) {
     let wamr_header = wamr_root.join("core/iwasm/include/wasm_export.h");
     assert!(wamr_header.exists());
 
@@ -204,4 +178,25 @@ fn main() {
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings");
+}
+
+fn main() {
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_ESP_IDF");
+    println!("cargo:rerun-if-env-changed=CARGO_CFG_TARGET_OS");
+    println!("cargo:rerun-if-env-changed=WAMR_BUILD_PLATFORM");
+    println!("cargo:rerun-if-env-changed=WAMR_SHARED_PLATFORM_CONFIG");
+    println!("cargo:rerun-if-env-changed=LLVM_LIB_CFG_PATH");
+    println!("cargo:rerun-if-env-changed=WAMR_BH_VPRINTF");
+
+    let wamr_root = env::current_dir().unwrap();
+    let wamr_root = wamr_root.join("wasm-micro-runtime");
+    assert!(wamr_root.exists());
+
+    if !check_is_espidf() {
+        // because the ESP-IDF build procedure differs from the regular one
+        // (build internally by esp-idf-sys),
+        build_wamr_libraries(&wamr_root);
+    }
+
+    generate_bindings(&wamr_root);
 }
