@@ -9,4 +9,4 @@ license = "Apache-2.0 WITH LLVM-exception"
 authors = ["The WAMR Project Developers"]
 
 [dependencies]
-wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", tag = "v1.0.0" }
+wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", tag = "v1.1.0" }
