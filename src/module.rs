@@ -43,7 +43,7 @@ impl Module {
         let mut binary: Vec<u8> = Vec::new();
         wasm_file.read_to_end(&mut binary)?;
 
-        Self::from_buf(runtime, &binary, name)
+        Self::from_vec(runtime, binary, name)
     }
 
     /// compile a module int the given buffer,
@@ -52,8 +52,7 @@ impl Module {
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    pub fn from_buf(_runtime: &Runtime, buf: &[u8], name: &str) -> Result<Self, RuntimeError> {
-        let mut content = buf.to_vec();
+    pub fn from_vec(_runtime: &Runtime, mut content: Vec<u8>, name: &str) -> Result<Self, RuntimeError> {
         let mut error_buf: [c_char; DEFAULT_ERROR_BUF_SIZE] = [0; DEFAULT_ERROR_BUF_SIZE];
         let module = unsafe {
             wasm_runtime_load(
@@ -222,7 +221,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary, "");
+        let module = Module::from_vec(&runtime, binary, "");
         assert!(module.is_ok());
     }
 
@@ -255,7 +254,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary, "add");
+        let module = Module::from_vec(&runtime, binary, "add");
         assert!(module.is_ok());
         let mut module = module.unwrap();
 
@@ -287,7 +286,7 @@ mod tests {
         ];
         let binary = binary.into_iter().map(|c| c as u8).collect::<Vec<u8>>();
 
-        let module = Module::from_buf(&runtime, &binary, "add")?;
+        let module = Module::from_vec(&runtime, binary, "add")?;
 
         assert_eq!(module.get_name(), "add");
 
