@@ -34,7 +34,7 @@ impl<'a> Instance<'a> {
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new(
         runtime: &'a Runtime,
-        module: &'a Module,
+        module: &'a Module<'a>,
         stack_size: u32,
     ) -> Result<Self, RuntimeError> {
         Self::new_with_args(runtime, module, stack_size, 0)
@@ -49,7 +49,7 @@ impl<'a> Instance<'a> {
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new_with_args(
         _runtime: &'a Runtime,
-        module: &'a Module,
+        module: &'a Module<'a>,
         stack_size: u32,
         heap_size: u32,
     ) -> Result<Self, RuntimeError> {
