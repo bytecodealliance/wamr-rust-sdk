@@ -34,7 +34,7 @@ pub struct Module<'a> {
     // to keep the module content in memory
     content: Vec<u8>,
     wasi_ctx: WasiCtx,
-    _phantom: PhantomData<&'a ()>,
+    _phantom: PhantomData<&'a Runtime>,
 }
 
 impl<'a> Module<'a> {
