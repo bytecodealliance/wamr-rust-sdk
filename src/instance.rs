@@ -23,7 +23,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Instance<'a> {
     instance: wasm_module_inst_t,
-    _phantom: PhantomData<&'a ()>,
+    _phantom: PhantomData<&'a Module>,
 }
 
 impl<'a> Instance<'a> {
