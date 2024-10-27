@@ -23,7 +23,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Instance<'a> {
     instance: wasm_module_inst_t,
-    _phantom: PhantomData<&'a Module>,
+    _phantom: PhantomData<Module<'a>>,
 }
 
 impl<'a> Instance<'a> {
@@ -33,8 +33,8 @@ impl<'a> Instance<'a> {
     ///
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new(
-        runtime: &'a Runtime,
-        module: &'a Module<'a>,
+        runtime: &Runtime<'a>,
+        module: &Module<'a>,
         stack_size: u32,
     ) -> Result<Self, RuntimeError> {
         Self::new_with_args(runtime, module, stack_size, 0)
@@ -48,8 +48,8 @@ impl<'a> Instance<'a> {
     ///
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new_with_args(
-        _runtime: &'a Runtime,
-        module: &'a Module<'a>,
+        _runtime: &Runtime<'a>,
+        module: &Module<'a>,
         stack_size: u32,
         heap_size: u32,
     ) -> Result<Self, RuntimeError> {
