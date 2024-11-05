@@ -10,11 +10,14 @@ use std::ffi::CString;
 use wamr_sys::{
     wasm_exec_env_t, wasm_func_get_result_count, wasm_func_get_result_types, wasm_function_inst_t,
     wasm_runtime_call_wasm, wasm_runtime_get_exception, wasm_runtime_get_exec_env_singleton,
-    wasm_runtime_lookup_function, wasm_valkind_enum_WASM_F32, wasm_valkind_enum_WASM_F64,
-    wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64, wasm_valkind_t,
+    wasm_runtime_get_wasi_exit_code, wasm_runtime_lookup_function, wasm_valkind_enum_WASM_F32,
+    wasm_valkind_enum_WASM_F64, wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64,
+    wasm_valkind_t,
 };
 
-use crate::{helper::exception_to_string, instance::Instance, value::WasmValue, RuntimeError};
+use crate::{
+    helper::exception_to_string, instance::Instance, value::WasmValue, ExecError, RuntimeError,
+};
 
 pub struct Function {
     function: wasm_function_inst_t,
@@ -95,9 +98,11 @@ impl Function {
         if !call_result {
             unsafe {
                 let exception_c = wasm_runtime_get_exception(instance.get_inner_instance());
-                return Err(RuntimeError::ExecutionError(exception_to_string(
-                    exception_c,
-                )));
+                let error_info = ExecError {
+                    message: exception_to_string(exception_c),
+                    exit_code: wasm_runtime_get_wasi_exit_code(instance.get_inner_instance()),
+                };
+                return Err(RuntimeError::ExecutionError(error_info));
             }
         }
 

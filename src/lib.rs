@@ -155,6 +155,12 @@ pub mod runtime;
 pub mod value;
 pub mod wasi_context;
 
+#[derive(Debug)]
+pub struct ExecError {
+    pub message: String,
+    pub exit_code: u32,
+}
+
 /// all kinds of exceptions raised by WAMR
 #[derive(Debug)]
 pub enum RuntimeError {
@@ -168,7 +174,7 @@ pub enum RuntimeError {
     /// instantiation failure
     InstantiationFailure(String),
     /// Error during execute wasm functions
-    ExecutionError(String),
+    ExecutionError(ExecError),
     /// usually returns by `find_export_func()`
     FunctionNotFound,
 }
@@ -181,7 +187,11 @@ impl fmt::Display for RuntimeError {
             RuntimeError::WasmFileFSError(e) => write!(f, "Wasm file operation error: {}", e),
             RuntimeError::CompilationError(e) => write!(f, "Wasm compilation error: {}", e),
             RuntimeError::InstantiationFailure(e) => write!(f, "Wasm instantiation failure: {}", e),
-            RuntimeError::ExecutionError(e) => write!(f, "Wasm execution error: {}", e),
+            RuntimeError::ExecutionError(info) => write!(
+                f,
+                "Wasm execution error: {} and {}",
+                info.message, info.exit_code
+            ),
             RuntimeError::FunctionNotFound => write!(f, "Function not found"),
         }
     }
