@@ -44,7 +44,7 @@ impl<'a> Module<'a> {
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    pub fn from_file(runtime: &Runtime<'a>, wasm_file: &Path) -> Result<Self, RuntimeError> {
+    pub fn from_file(runtime: &'a Runtime<'a>, wasm_file: &Path) -> Result<Self, RuntimeError> {
         let name = wasm_file.file_name().unwrap().to_str().unwrap();
         let mut wasm_file = File::open(wasm_file)?;
 
@@ -61,7 +61,7 @@ impl<'a> Module<'a> {
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
     pub fn from_vec(
-        _runtime: &Runtime<'a>,
+        _runtime: &'a Runtime<'a>,
         mut content: Vec<u8>,
         name: &str,
     ) -> Result<Self, RuntimeError> {

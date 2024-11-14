@@ -27,7 +27,7 @@ impl<'a> Function<'a> {
     /// # Error
     ///
     /// Return `RuntimeError::FunctionNotFound` if failed.
-    pub fn find_export_func(instance: &Instance<'a>, name: &str) -> Result<Self, RuntimeError> {
+    pub fn find_export_func(instance: &'a Instance<'a>, name: &str) -> Result<Self, RuntimeError> {
         let name = CString::new(name).expect("CString::new failed");
         let function =
             unsafe { wasm_runtime_lookup_function(instance.get_inner_instance(), name.as_ptr()) };
@@ -43,7 +43,7 @@ impl<'a> Function<'a> {
     #[allow(non_upper_case_globals)]
     fn parse_result(
         &self,
-        instance: &Instance<'a>,
+        instance: &'a Instance<'a>,
         result: Vec<u32>,
     ) -> Result<WasmValue, RuntimeError> {
         let result_count =
@@ -78,7 +78,7 @@ impl<'a> Function<'a> {
     /// Return `RuntimeError::ExecutionError` if failed.
     pub fn call(
         &self,
-        instance: &Instance<'a>,
+        instance: &'a Instance<'a>,
         params: &Vec<WasmValue>,
     ) -> Result<WasmValue, RuntimeError> {
         // params -> Vec<u32>
