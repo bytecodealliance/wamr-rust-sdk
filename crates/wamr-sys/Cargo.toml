@@ -27,7 +27,7 @@ include = [
 
 [build-dependencies]
 bindgen = "0.70"
-cc = "1.1"
+cc = "1.2"
 cmake = "0.1"
 
 [features]
