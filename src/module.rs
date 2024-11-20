@@ -10,8 +10,15 @@ use crate::{
     helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, runtime::Runtime,
     wasi_context::WasiCtx, RuntimeError,
 };
+use core::marker::PhantomData;
 use std::{
-    ffi::c_char, ffi::CString, fs::File, io::Read, path::Path, ptr, string::String, vec::Vec,
+    ffi::{c_char, CString},
+    fs::File,
+    io::Read,
+    path::Path,
+    ptr,
+    string::String,
+    vec::Vec,
 };
 use wamr_sys::{
     wasm_module_t, wasm_runtime_load, wasm_runtime_set_module_name,
@@ -21,22 +28,23 @@ use wamr_sys::{
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct Module {
+pub struct Module<'a> {
     name: String,
     module: wasm_module_t,
     // to keep the module content in memory
     content: Vec<u8>,
     wasi_ctx: WasiCtx,
+    _phantom: PhantomData<Runtime<'a>>,
 }
 
-impl Module {
+impl<'a> Module<'a> {
     /// compile a module with the given wasm file path, use the file name as the module name
     ///
     /// # Error
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    pub fn from_file(runtime: &Runtime, wasm_file: &Path) -> Result<Self, RuntimeError> {
+    pub fn from_file(runtime: &'a Runtime<'a>, wasm_file: &Path) -> Result<Self, RuntimeError> {
         let name = wasm_file.file_name().unwrap().to_str().unwrap();
         let mut wasm_file = File::open(wasm_file)?;
 
@@ -52,7 +60,11 @@ impl Module {
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    pub fn from_vec(_runtime: &Runtime, mut content: Vec<u8>, name: &str) -> Result<Self, RuntimeError> {
+    pub fn from_vec(
+        _runtime: &'a Runtime<'a>,
+        mut content: Vec<u8>,
+        name: &str,
+    ) -> Result<Self, RuntimeError> {
         let mut error_buf: [c_char; DEFAULT_ERROR_BUF_SIZE] = [0; DEFAULT_ERROR_BUF_SIZE];
         let module = unsafe {
             wasm_runtime_load(
@@ -97,6 +109,7 @@ impl Module {
             module,
             content,
             wasi_ctx: WasiCtx::default(),
+            _phantom: PhantomData,
         })
     }
 
@@ -177,7 +190,7 @@ impl Module {
     }
 }
 
-impl Drop for Module {
+impl Drop for Module<'_> {
     fn drop(&mut self) {
         unsafe {
             wasm_runtime_unload(self.module);

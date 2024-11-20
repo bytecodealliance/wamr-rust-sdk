@@ -8,7 +8,7 @@
 
 #![allow(unused_variables)]
 
-use core::ffi::c_char;
+use core::{ffi::c_char, marker::PhantomData};
 
 use wamr_sys::{
     wasm_module_inst_t, wasm_runtime_deinstantiate, wasm_runtime_destroy_thread_env,
@@ -21,17 +21,22 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Instance {
+pub struct Instance<'a> {
     instance: wasm_module_inst_t,
+    _phantom: PhantomData<Module<'a>>,
 }
 
-impl Instance {
+impl<'a> Instance<'a> {
     /// instantiate a module with stack size
     ///
     /// # Error
     ///
     /// Return `RuntimeError::CompilationError` if failed.
-    pub fn new(runtime: &Runtime, module: &Module, stack_size: u32) -> Result<Self, RuntimeError> {
+    pub fn new(
+        runtime: &'a Runtime<'a>,
+        module: &'a Module<'a>,
+        stack_size: u32,
+    ) -> Result<Self, RuntimeError> {
         Self::new_with_args(runtime, module, stack_size, 0)
     }
 
@@ -43,8 +48,8 @@ impl Instance {
     ///
     /// Return `RuntimeError::CompilationError` if failed.
     pub fn new_with_args(
-        _runtime: &Runtime,
-        module: &Module,
+        _runtime: &'a Runtime<'a>,
+        module: &'a Module<'a>,
         stack_size: u32,
         heap_size: u32,
     ) -> Result<Self, RuntimeError> {
@@ -81,7 +86,10 @@ impl Instance {
             }
         }
 
-        Ok(Instance { instance })
+        Ok(Instance {
+            instance,
+            _phantom: PhantomData,
+        })
     }
 
     pub fn get_inner_instance(&self) -> wasm_module_inst_t {
@@ -89,7 +97,7 @@ impl Instance {
     }
 }
 
-impl Drop for Instance {
+impl Drop for Instance<'_> {
     fn drop(&mut self) {
         unsafe {
             wasm_runtime_destroy_thread_env();

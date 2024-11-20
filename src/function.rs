@@ -6,7 +6,7 @@
 //! an exported wasm function.
 //! get one via `Function::find_export_func()`
 
-use std::ffi::CString;
+use std::{ffi::CString, marker::PhantomData};
 use wamr_sys::{
     wasm_exec_env_t, wasm_func_get_result_count, wasm_func_get_result_types, wasm_function_inst_t,
     wasm_runtime_call_wasm, wasm_runtime_get_exception, wasm_runtime_get_exec_env_singleton,
@@ -19,30 +19,34 @@ use crate::{
     helper::exception_to_string, instance::Instance, value::WasmValue, ExecError, RuntimeError,
 };
 
-pub struct Function {
+pub struct Function<'a> {
     function: wasm_function_inst_t,
+    _phantom: PhantomData<Instance<'a>>,
 }
 
-impl Function {
+impl<'a> Function<'a> {
     /// find a function by name
     ///
     /// # Error
     ///
     /// Return `RuntimeError::FunctionNotFound` if failed.
-    pub fn find_export_func(instance: &Instance, name: &str) -> Result<Function, RuntimeError> {
+    pub fn find_export_func(instance: &'a Instance<'a>, name: &str) -> Result<Self, RuntimeError> {
         let name = CString::new(name).expect("CString::new failed");
         let function =
             unsafe { wasm_runtime_lookup_function(instance.get_inner_instance(), name.as_ptr()) };
         match function.is_null() {
             true => Err(RuntimeError::FunctionNotFound),
-            false => Ok(Function { function }),
+            false => Ok(Function {
+                function,
+                _phantom: PhantomData,
+            }),
         }
     }
 
     #[allow(non_upper_case_globals)]
     fn parse_result(
         &self,
-        instance: &Instance,
+        instance: &'a Instance<'a>,
         result: Vec<u32>,
     ) -> Result<WasmValue, RuntimeError> {
         let result_count =
@@ -77,7 +81,7 @@ impl Function {
     /// Return `RuntimeError::ExecutionError` if failed.
     pub fn call(
         &self,
-        instance: &Instance,
+        instance: &'a Instance<'a>,
         params: &Vec<WasmValue>,
     ) -> Result<WasmValue, RuntimeError> {
         // params -> Vec<u32>
