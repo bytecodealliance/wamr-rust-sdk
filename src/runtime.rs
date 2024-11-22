@@ -7,7 +7,7 @@
 //! Every process should have only one instance of this runtime by call
 //! `Runtime::new()` or `Runtime::builder().build()` once.
 
-use std::{ffi::c_void, marker::PhantomData};
+use std::ffi::c_void;
 
 use wamr_sys::{
     mem_alloc_type_t_Alloc_With_Pool, mem_alloc_type_t_Alloc_With_System_Allocator,
@@ -19,12 +19,11 @@ use crate::{host_function::HostFunctionList, RuntimeError};
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct Runtime<'a> {
+pub struct Runtime {
     host_functions: HostFunctionList,
-    _phantom: PhantomData<&'a u8>,
 }
 
-impl<'a> Runtime<'a> {
+impl Runtime {
     /// return a `RuntimeBuilder` instance
     ///
     /// has to
@@ -45,14 +44,13 @@ impl<'a> Runtime<'a> {
         match unsafe { wasm_runtime_init() } {
             true => Ok(Runtime {
                 host_functions: HostFunctionList::new("empty"),
-                _phantom: PhantomData,
             }),
             false => Err(RuntimeError::InitializationFailure),
         }
     }
 }
 
-impl Drop for Runtime<'_> {
+impl Drop for Runtime {
     fn drop(&mut self) {
         unsafe {
             wasm_runtime_destroy();
@@ -125,7 +123,7 @@ impl RuntimeBuilder {
     /// # Errors
     ///
     /// if the runtime initialization failed, it will return `RuntimeError::InitializationFailure`
-    pub fn build<'a>(mut self) -> Result<Runtime<'a>, RuntimeError> {
+    pub fn build(mut self) -> Result<Runtime, RuntimeError> {
         match unsafe {
             let module_name = &(self.host_functions).get_module_name();
             self.args.native_module_name = module_name.as_ptr();
@@ -138,7 +136,6 @@ impl RuntimeBuilder {
         } {
             true => Ok(Runtime {
                 host_functions: self.host_functions,
-                _phantom: PhantomData,
             }),
             false => Err(RuntimeError::InitializationFailure),
         }
