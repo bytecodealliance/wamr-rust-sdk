@@ -19,18 +19,21 @@ use crate::{
     helper::exception_to_string, instance::Instance, value::WasmValue, ExecError, RuntimeError,
 };
 
-pub struct Function<'a> {
+pub struct Function<'instance> {
     function: wasm_function_inst_t,
-    _phantom: PhantomData<Instance<'a>>,
+    _phantom: PhantomData<Instance<'instance>>,
 }
 
-impl<'a> Function<'a> {
+impl<'instance> Function<'instance> {
     /// find a function by name
     ///
     /// # Error
     ///
     /// Return `RuntimeError::FunctionNotFound` if failed.
-    pub fn find_export_func(instance: &'a Instance<'a>, name: &str) -> Result<Self, RuntimeError> {
+    pub fn find_export_func(
+        instance: &'instance Instance<'instance>,
+        name: &str,
+    ) -> Result<Self, RuntimeError> {
         let name = CString::new(name).expect("CString::new failed");
         let function =
             unsafe { wasm_runtime_lookup_function(instance.get_inner_instance(), name.as_ptr()) };
@@ -46,7 +49,7 @@ impl<'a> Function<'a> {
     #[allow(non_upper_case_globals)]
     fn parse_result(
         &self,
-        instance: &'a Instance<'a>,
+        instance: &Instance<'instance>,
         result: Vec<u32>,
     ) -> Result<WasmValue, RuntimeError> {
         let result_count =
@@ -81,7 +84,7 @@ impl<'a> Function<'a> {
     /// Return `RuntimeError::ExecutionError` if failed.
     pub fn call(
         &self,
-        instance: &'a Instance<'a>,
+        instance: &'instance Instance<'instance>,
         params: &Vec<WasmValue>,
     ) -> Result<WasmValue, RuntimeError> {
         // params -> Vec<u32>
