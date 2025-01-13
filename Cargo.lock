@@ -337,9 +337,9 @@ dependencies = [
 
 [[package]]
 name = "esp-idf-sys"
-version = "0.36.0"
+version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6527dd3034f4187cd70f7f66e140f9e56da89f3f54d8df4fad0420b4ff06ffe2"
+checksum = "fb77a3d02b579a60a811ed9be22b78c5e794bc492d833ee7fc44d3a0155885e1"
 dependencies = [
  "anyhow",
  "build-time",
