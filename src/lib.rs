@@ -68,12 +68,11 @@
 //!     runtime::Runtime, module::Module, instance::Instance, function::Function,
 //!     value::WasmValue, RuntimeError
 //! };
-//! use std::path::PathBuf;
 //!
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::new()?;
 //!
-//!     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+//!     let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 //!     d.push("resources/test");
 //!     d.push("gcd_wasm32_wasi.wasm");
 //!
@@ -106,12 +105,18 @@
 //! The rust code to call the *add* function is like this:
 //!
 //! ```
+//! #![no_std]
+//!
+//! #[macro_use]
+//! extern crate alloc;
+//!
+//! use alloc::vec::Vec;
+//! use core::ffi::c_void;
+//!
 //! use wamr_rust_sdk::{
 //!     runtime::Runtime, module::Module, instance::Instance, function::Function,
 //!     value::WasmValue, RuntimeError
 //! };
-//! use std::path::PathBuf;
-//! use std::ffi::c_void;
 //!
 //! extern "C" fn extra() -> i32 {
 //!     100
@@ -123,10 +128,9 @@
 //!         .register_host_function("extra", extra as *mut c_void)
 //!         .build()?;
 //!
-//!     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-//!     d.push("resources/test");
-//!     d.push("add_extra_wasm32_wasi.wasm");
-//!     let module = Module::from_file(&runtime, d.as_path())?;
+//!     
+//!     let bytes = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/resources/test/add_extra_wasm32_wasi.wasm"));
+//!     let module = Module::from_vec(&runtime, Vec::from(bytes), "add_extra")?;
 //!
 //!     let instance = Instance::new(&runtime, &module, 1024 * 64)?;
 //!
@@ -141,9 +145,13 @@
 //! ```
 //!
 
-use std::error;
-use std::fmt;
-use std::io;
+#![cfg_attr(all(not(test), not(feature = "std")), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+use alloc::string::String;
+use core::{error, fmt};
 pub use wamr_sys as sys;
 
 pub mod function;
@@ -168,6 +176,7 @@ pub enum RuntimeError {
     /// Runtime initialization error.
     InitializationFailure,
     /// file operation error. usually while loading(compilation) a .wasm
+    #[cfg(any(test, feature = "std"))]
     WasmFileFSError(std::io::Error),
     /// A compilation error. usually means that the .wasm file is invalid
     CompilationError(String),
@@ -184,6 +193,7 @@ impl fmt::Display for RuntimeError {
         match self {
             RuntimeError::NotImplemented => write!(f, "Not implemented"),
             RuntimeError::InitializationFailure => write!(f, "Runtime initialization failure"),
+            #[cfg(any(test, feature = "std"))]
             RuntimeError::WasmFileFSError(e) => write!(f, "Wasm file operation error: {}", e),
             RuntimeError::CompilationError(e) => write!(f, "Wasm compilation error: {}", e),
             RuntimeError::InstantiationFailure(e) => write!(f, "Wasm instantiation failure: {}", e),
@@ -200,14 +210,16 @@ impl fmt::Display for RuntimeError {
 impl error::Error for RuntimeError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
+            #[cfg(any(test, feature = "std"))]
             RuntimeError::WasmFileFSError(e) => Some(e),
             _ => None,
         }
     }
 }
 
-impl From<io::Error> for RuntimeError {
-    fn from(e: io::Error) -> Self {
+#[cfg(any(test, feature = "std"))]
+impl From<std::io::Error> for RuntimeError {
+    fn from(e: std::io::Error) -> Self {
         RuntimeError::WasmFileFSError(e)
     }
 }
