@@ -9,6 +9,7 @@ on:
       - opened
       - synchronize
     paths:
+      - ".github/**"
       - "crates/**"
       - "src/**"
 
@@ -36,18 +37,23 @@ env:
 jobs:
   # linter
   clippy_check:
-    runs-on: ubuntu-latest
+    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
+    # so we use 22.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
 
       - name: Run Clippy
-        run: cargo clippy --all-targets --all-features
+        run: |
+          cargo clippy --all-targets --all-features
 
-  # all test cases
+  # all test cases with default features
   test:
-    runs-on: ubuntu-latest
+    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
+    # so we use 22.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:
