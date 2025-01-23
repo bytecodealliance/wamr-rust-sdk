@@ -2,13 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
 [workspace]
-members = ["crates/wamr-sys"]
-exclude = [
+members = [
+    "crates/wamr-macros",
+    "crates/wamr-sys",
     "examples/wasi-hello",
+    "examples/wasm-hello",
+]
+exclude = [
+    "resources/test/basic",
     "resources/test/gcd",
     "resources/test/add-extra",
-    ".devcontainer",
-    ".github",
 ]
 resolver = "2"
 
@@ -16,6 +19,9 @@ resolver = "2"
 edition = "2021"
 license = "Apache-2.0 WITH LLVM-exception"
 authors = ["The WAMR Project Developers"]
+
+[workspace.dependencies]
+"wamr-rust-sdk" = { path = ".", version = "*" }
 
 [package]
 name = "wamr-rust-sdk"
@@ -29,6 +35,7 @@ categories = ["api-bindings", "wasm"]
 keywords = ["api-bindings", "wasm", "webassembly"]
 
 [dependencies]
+wamr-macros = { path = "crates/wamr-macros", version = "1.0.0", optional = true }
 wamr-sys = { path = "crates/wamr-sys", version = "1.0.0" }
 
 [target.'cfg( target_os = "espidf" )'.dependencies]
@@ -39,6 +46,8 @@ bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_
 component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
 
 [features]
+default = ["macros"]
+macros = ["wamr-macros"]
 custom-section = ["wamr-sys/custom-section"]
 dump-call-stack = ["wamr-sys/dump-call-stack"]
 esp-idf = ["esp-idf-sys", "wamr-sys/esp-idf"]

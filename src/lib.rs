@@ -108,7 +108,7 @@
 //! ```
 //! use wamr_rust_sdk::{
 //!     runtime::Runtime, module::Module, instance::Instance, function::Function,
-//!     value::WasmValue, RuntimeError
+//!     host_function::HostFunction, value::WasmValue, RuntimeError
 //! };
 //! use std::path::PathBuf;
 //! use std::ffi::c_void;
@@ -120,7 +120,7 @@
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::builder()
 //!         .use_system_allocator()
-//!         .register_host_function("extra", extra as *mut c_void)
+//!         .register_host_function(HostFunction::new("extra", extra as *mut c_void, "()i"))
 //!         .build()?;
 //!
 //!     let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -141,10 +141,13 @@
 //! ```
 //!
 
-use std::error;
-use std::fmt;
-use std::io;
+#[cfg(feature = "macros")]
+pub extern crate wamr_macros;
+
+use std::{error, fmt, io};
+
 pub use wamr_sys as sys;
+pub use wamr_macros::generate_host_function;
 
 pub mod function;
 mod helper;

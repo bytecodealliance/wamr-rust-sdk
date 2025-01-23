@@ -11,9 +11,29 @@ use wamr_sys::NativeSymbol;
 
 #[allow(dead_code)]
 #[derive(Debug)]
-struct HostFunction {
+pub struct HostFunction {
     function_name: CString,
     function_ptr: *mut c_void,
+    signature: CString,
+}
+
+impl HostFunction {
+    pub fn new(name: &str, ptr: *mut c_void, signature: &str) -> Self {
+        HostFunction {
+            function_name: CString::new(name).unwrap(),
+            function_ptr: ptr,
+            signature: CString::new(signature).unwrap(),
+        }
+    }
+}
+
+impl<F> From<F> for HostFunction
+where
+    F: Fn() -> HostFunction,
+{
+    fn from(f: F) -> HostFunction {
+        f()
+    }
 }
 
 #[derive(Debug)]
@@ -33,15 +53,21 @@ impl HostFunctionList {
         }
     }
 
-    pub fn register_host_function(&mut self, function_name: &str, function_ptr: *mut c_void) {
-        self.host_functions.push(HostFunction {
-            function_name: CString::new(function_name).unwrap(),
-            function_ptr,
-        });
+    pub fn register_host_function<T: Into<HostFunction>>(&mut self, function: T) {
+        let host_function: HostFunction = function.into();
+
+        self.host_functions.push(host_function);
 
         let last = self.host_functions.last().unwrap();
         self.native_symbols
-            .push(pack_host_function(&(last.function_name), function_ptr));
+            .push(
+                NativeSymbol {
+                    symbol: (&last.function_name).as_ptr(),
+                    func_ptr: last.function_ptr,
+                    signature: (&last.signature).as_ptr(),
+                    attachment: ptr::null_mut(),
+                }
+            )
     }
 
     pub fn get_native_symbols(&mut self) -> &mut Vec<NativeSymbol> {
@@ -50,15 +76,6 @@ impl HostFunctionList {
 
     pub fn get_module_name(&mut self) -> &CString {
         &self.module_name
-    }
-}
-
-pub fn pack_host_function(function_name: &CString, function_ptr: *mut c_void) -> NativeSymbol {
-    NativeSymbol {
-        symbol: function_name.as_ptr(),
-        func_ptr: function_ptr,
-        signature: ptr::null(),
-        attachment: ptr::null_mut(),
     }
 }
 
@@ -80,7 +97,7 @@ mod tests {
     fn test_host_function() {
         let runtime = Runtime::builder()
             .use_system_allocator()
-            .register_host_function("extra", extra as *mut c_void)
+            .register_host_function(HostFunction::new("extra", extra as *mut c_void, "()i"))
             .build()
             .unwrap();
 
