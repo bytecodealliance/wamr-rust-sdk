@@ -38,7 +38,7 @@ impl<'runtime> Module<'runtime> {
     ///
     /// If the file does not exist or the file cannot be read, an `RuntimeError::WasmFileFSError` will be returned.
     /// If the wasm file is not a valid wasm file, an `RuntimeError::CompilationError` will be returned.
-    #[cfg(any(test, feature = "std"))]
+    #[cfg(feature = "std")]
     pub fn from_file(runtime: &'runtime Runtime, wasm_file: &std::path::Path) -> Result<Self, RuntimeError> {
         use std::{fs::File, io::Read};
 
