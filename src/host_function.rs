@@ -101,6 +101,6 @@ mod tests {
 
         let params: Vec<WasmValue> = vec![WasmValue::I32(8), WasmValue::I32(8)];
         let result = function.call(instance, &params);
-        assert_eq!(result.unwrap(), WasmValue::I32(116));
+        assert_eq!(result.unwrap(), vec![WasmValue::I32(116)]);
     }
 }
