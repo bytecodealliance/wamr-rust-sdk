@@ -18,7 +18,9 @@ fn now() -> i64 {
 #[generate_host_function]
 fn mystery(n: f32, func1: u32, func2: u32) -> f32 {
     let mut argv: Vec<u32> = Vec::with_capacity(2);
-    argv[0] = n as u32;
+
+    let mut data_buffer: Vec<u32> = WasmValue::F32(n).encode();
+    argv.append(&mut data_buffer);
 
     let func1_result = unsafe { wasm_runtime_call_indirect(exec_env, func1, 1, argv.as_mut_ptr()) };
 

@@ -54,7 +54,7 @@ pub fn generate_host_function(args: TokenStream, item: TokenStream) -> TokenStre
 
         let return_signature = match function_output {
             ReturnType::Default => String::new(),
-            ReturnType::Type(_, ret_type) => get_signature_for_type(&ret_type)
+            ReturnType::Type(_, ret_type) => get_signature_for_type(ret_type)
                 .unwrap_or_else(|| panic!("Unsupported return type."))
                 .to_string(),
         };

@@ -62,9 +62,9 @@ impl HostFunctionList {
         self.native_symbols
             .push(
                 NativeSymbol {
-                    symbol: (&last.function_name).as_ptr(),
+                    symbol: last.function_name.as_ptr(),
                     func_ptr: last.function_ptr,
-                    signature: (&last.signature).as_ptr(),
+                    signature: last.signature.as_ptr(),
                     attachment: ptr::null_mut(),
                 }
             )
