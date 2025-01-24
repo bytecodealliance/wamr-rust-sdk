@@ -8,7 +8,7 @@ fn panic_handler(_: &core::panic::PanicInfo) -> ! {
 #[link(wasm_import_module = "host")]
 extern "C" {
     fn now() -> i64;
-    // fn calculate_native(n: f32, func1: usize, func2: usize) -> f32;
+    fn mystery(n: f32, func1: usize, func2: usize) -> f32;
 }
 
 static mut START_TIME: i64 = 0;
@@ -33,17 +33,17 @@ pub fn stop() -> i64 {
     }
 }
 
-// fn mul7(n: f32) -> f32 {
-//     n * 7.0
-// }
+fn mul7(n: f32) -> f32 {
+    n * 7.0
+}
 
-// fn mul5(n: f32) -> f32 {
-//     n * 5.0
-// }
+fn mul5(n: f32) -> f32 {
+    n * 5.0
+}
 
-// #[export_name = "calculate"]
-// pub fn calculate(n: f32) -> f32 {
-//     unsafe {
-//         calculate_native(n, mul5 as usize, mul7 as usize)
-//     }
-// }
+#[export_name = "calculate"]
+pub fn calculate(n: f32) -> f32 {
+    unsafe {
+        mystery(n, mul5 as usize, mul7 as usize)
+    }
+}

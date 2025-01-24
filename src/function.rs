@@ -183,7 +183,7 @@ mod tests {
         let runtime = Runtime::new().unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test");
+        d.push("tests/fixtures");
         d.push("gcd_wasm32_wasi.wasm");
         let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());
@@ -216,7 +216,7 @@ mod tests {
         let runtime = Runtime::new().unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test");
+        d.push("tests/fixtures");
         d.push("wasi-demo-app.wasm");
         let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());

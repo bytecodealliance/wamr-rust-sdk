@@ -50,7 +50,22 @@ variant, imports. But *loading linking* means that all instances share the same 
 
 ### Examples
 
-#### Example: to run a wasm32-wasi .wasm
+Under the [`examples`](examples) contains a number of examples showcasing various
+capabilities of the `wamr-rust-sdk` crate.
+
+All examples can be executed with:
+
+```sh
+cargo run --example $name
+```
+
+A good starting point for the examples would be [`examples/basic`](examples/basic.rs).
+
+If you've got an example you'd like to see here, please feel free to open an
+issue. Otherwise if you've got an example you'd like to add, please feel free
+to make a PR!
+
+#### Quick Start: to run a wasm32-wasi .wasm
 
 *wasm32-wasi* is a most common target for Wasm. It means that the .wasm is compiled with
 `cargo build --target wasm32-wasi` or `wasi-sdk/bin/clang --target wasm32-wasi`.
@@ -65,13 +80,12 @@ use wamr_rust_sdk::{
     runtime::Runtime, module::Module, instance::Instance, function::Function,
     value::WasmValue, RuntimeError
 };
-use std::path::PathBuf;
 
 fn main() -> Result<(), RuntimeError> {
     let runtime = Runtime::new()?;
 
-    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push("resources/test");
+    let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("tests/fixtures");
     d.push("gcd_wasm32_wasi.wasm");
 
     let module = Module::from_file(&runtime, d.as_path())?;
@@ -88,7 +102,7 @@ fn main() -> Result<(), RuntimeError> {
 }
 ```
 
-#### Example: more configuration for runtime.
+#### Quick Start: more configuration for runtime.
 
 With more configuration, runtime is capable to run .wasm with variant features, like
 - Wasm without WASI requirement. Usually, it means that the .wasm is compiled with `-nostdlib`
@@ -104,25 +118,25 @@ The rust code to call the *add* function is like this:
 
 ```rust
 use wamr_rust_sdk::{
-    runtime::Runtime, module::Module, instance::Instance, function::Function,
-    value::WasmValue, RuntimeError
+    function::Function, generate_host_function, instance::Instance, module::Module,
+    runtime::Runtime, value::WasmValue, RuntimeError
 };
-use std::path::PathBuf;
-use std::ffi::c_void;
 
-extern "C" fn extra() -> i32 {
+#[generate_host_function]
+fn extra() -> i32 {
     100
 }
 
 fn main() -> Result<(), RuntimeError> {
     let runtime = Runtime::builder()
         .use_system_allocator()
-        .register_host_function("extra", extra as *mut c_void)
+        .register_host_function(extra)
         .build()?;
 
-    let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    d.push("resources/test");
+    let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    d.push("tests/fixtures");
     d.push("add_extra_wasm32_wasi.wasm");
+
     let module = Module::from_file(&runtime, d.as_path())?;
 
     let instance = Instance::new(&runtime, &module, 1024 * 64)?;
@@ -136,4 +150,3 @@ fn main() -> Result<(), RuntimeError> {
     Ok(())
 }
 ```
-

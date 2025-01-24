@@ -70,7 +70,7 @@ pub fn generate_host_function(args: TokenStream, item: TokenStream) -> TokenStre
         #function_vis fn #function_ident() -> wamr_rust_sdk::host_function::HostFunction {
             wamr_rust_sdk::host_function::HostFunction::new(
                 #function_name,
-                #c_function_ident as *mut c_void,
+                #c_function_ident as *mut core::ffi::c_void,
                 #signature
             )
         }
