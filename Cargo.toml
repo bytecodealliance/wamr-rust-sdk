@@ -6,6 +6,10 @@ members = [
     "crates/wamr-macros",
     "crates/wamr-sys",
 ]
+exclude = [
+    "examples/modules",
+    "tests/fixtures",
+]
 resolver = "2"
 
 [workspace.package]

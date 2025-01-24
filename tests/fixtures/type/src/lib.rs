@@ -15,7 +15,7 @@ pub fn return_u32() -> u32 {
 }
 
 #[export_name = "param_u32"]
-pub fn param_i32(v: u32) -> u32 {
+pub fn param_u32(v: u32) -> u32 {
     v
 }
 

@@ -84,8 +84,8 @@ fn get_signature_for_type(ty: &Type) -> Option<char> {
         Type::Path(type_path) => {
             let type_name = type_path.path.segments.last()?.ident.to_string();
             match type_name.as_str() {
-                "i32" => Some('i'),
-                "i64" => Some('I'),
+                "i32" | "u32" => Some('i'),
+                "i64" | "u64" => Some('I'),
                 "f32" => Some('f'),
                 "f64" => Some('F'),
                 "usize" => Some('i'),
