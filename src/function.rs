@@ -8,8 +8,9 @@
 
 use std::{ffi::CString, marker::PhantomData};
 use wamr_sys::{
-    wasm_exec_env_t, wasm_func_get_result_count, wasm_func_get_result_types, wasm_function_inst_t,
-    wasm_runtime_call_wasm, wasm_runtime_get_exception, wasm_runtime_get_exec_env_singleton,
+    wasm_exec_env_t, wasm_func_get_param_count, wasm_func_get_result_count,
+    wasm_func_get_result_types, wasm_function_inst_t, wasm_runtime_call_wasm,
+    wasm_runtime_get_exception, wasm_runtime_get_exec_env_singleton,
     wasm_runtime_get_wasi_exit_code, wasm_runtime_lookup_function, wasm_valkind_enum_WASM_F32,
     wasm_valkind_enum_WASM_F64, wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64,
     wasm_valkind_t,
@@ -87,19 +88,32 @@ impl<'instance> Function<'instance> {
         instance: &'instance Instance<'instance>,
         params: &Vec<WasmValue>,
     ) -> Result<WasmValue, RuntimeError> {
+        let param_count =
+            unsafe { wasm_func_get_param_count(self.function, instance.get_inner_instance()) };
+        if param_count > params.len() as u32 {
+            return Err(RuntimeError::ExecutionError(ExecError {
+                message: "invalid parameters".to_string(),
+                exit_code: 0xff,
+            }));
+        }
+
         // params -> Vec<u32>
         let mut argv = Vec::new();
         for p in params {
             argv.append(&mut p.encode());
         }
 
-        let argc = params.len();
+        // Maintain sufficient allocated space in the vector rather than just declaring its capacity.
+        let result_count =
+            unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
+        argv.resize(std::cmp::max(param_count, result_count * 2) as usize, 0);
+
         let call_result: bool;
         unsafe {
             let exec_env: wasm_exec_env_t =
                 wasm_runtime_get_exec_env_singleton(instance.get_inner_instance());
             call_result =
-                wasm_runtime_call_wasm(exec_env, self.function, argc as u32, argv.as_mut_ptr());
+                wasm_runtime_call_wasm(exec_env, self.function, param_count, argv.as_mut_ptr());
         };
 
         if !call_result {
@@ -169,7 +183,7 @@ mod tests {
         let runtime = Runtime::new().unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test");
+        d.push("tests/fixtures");
         d.push("gcd_wasm32_wasi.wasm");
         let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());
@@ -202,7 +216,7 @@ mod tests {
         let runtime = Runtime::new().unwrap();
 
         let mut d = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        d.push("resources/test");
+        d.push("tests/fixtures");
         d.push("wasi-demo-app.wasm");
         let module = Module::from_file(&runtime, d.as_path());
         assert!(module.is_ok());

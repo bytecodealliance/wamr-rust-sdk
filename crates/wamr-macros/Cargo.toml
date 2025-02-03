@@ -1,0 +1,13 @@
+[package]
+name = "wamr-macros"
+version = "1.0.0"
+edition = "2021"
+license = "Apache-2.0 WITH LLVM-exception"
+authors = ["The WAMR Project Developers"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1"
+syn = { version = "2", features = ["full"] }
