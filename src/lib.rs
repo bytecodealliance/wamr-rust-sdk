@@ -53,10 +53,10 @@
 //!
 //! ## Examples
 //!
-//! ### Example: to run a wasm32-wasi .wasm
+//! ### Example: to run a wasm32-wasip1 .wasm
 //!
-//! *wasm32-wasi* is a most common target for Wasm. It means that the .wasm is compiled with
-//! `cargo build --target wasm32-wasi` or `wasi-sdk/bin/clang --target wasm32-wasi`.
+//! *wasm32-wasip1* is a most common target for Wasm. It means that the .wasm is compiled with
+//! `cargo build --target wasm32-wasip1` or `wasi-sdk/bin/clang --target wasm32-wasip1`.
 //!
 //! Say there is a gcd_wasm32_wasi.wasm which includes a function named *gcd*. It returns the GCD
 //! of two parameters.

@@ -5,7 +5,7 @@ printf "Installing Rust Targets\n"
 #rustup update stable --no-self-update
 rustup default stable
 rustup target add wasm32-unknown-unknown
-rustup target add wasm32-wasi
+rustup target add wasm32-wasip1
 rustup component add clippy
 rustup component add rustfmt
 
