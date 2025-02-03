@@ -12,3 +12,4 @@ RUN cd /tmp \
   && chmod a+x llvm.sh \
   && ./llvm.sh 15
 
+RUN ln -sf /usr/bin/lldb-15 /usr/bin/lldb
