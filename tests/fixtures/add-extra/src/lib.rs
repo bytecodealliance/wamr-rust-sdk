@@ -12,7 +12,3 @@ extern "C" {
 pub fn add_ex(m: u32, n: u32) -> u32 {
     m + n + unsafe { extra() }
 }
-
-fn main() {
-    println!("Hello, world! Please call add(10, 20) to see the result.");
-}

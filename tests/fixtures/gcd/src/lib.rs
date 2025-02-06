@@ -15,7 +15,3 @@ pub fn gcd(m: u32, n: u32) -> u32 {
     println!("gcd({}, {}) = {}", m, n, a);
     a
 }
-
-fn main() {
-    println!("Hello, world! Please call gcd(10, 5) to see the result.");
-}

@@ -15,7 +15,7 @@ use wamr_sys::{
     RunningMode_Mode_Interp, RunningMode_Mode_LLVM_JIT, RuntimeInitArgs,
 };
 
-use crate::{host_function::HostFunctionList, RuntimeError};
+use crate::{host_function::{HostFunction, HostFunctionList}, RuntimeError};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -68,15 +68,19 @@ pub struct RuntimeBuilder {
 /// Can't build() until config allocator mode
 impl Default for RuntimeBuilder {
     fn default() -> Self {
-        let args = RuntimeInitArgs::default();
-        RuntimeBuilder {
-            args,
-            host_functions: HostFunctionList::new("host"),
-        }
+        Self::new("host")
     }
 }
 
 impl RuntimeBuilder {
+    /// create a named module runtime builder
+    pub fn new(name: &str) -> Self {
+        Self {
+            args: RuntimeInitArgs::default(),
+            host_functions: HostFunctionList::new(name),
+        }
+    }
+
     /// system allocator mode
     /// allocate memory from system allocator for runtime consumed memory
     pub fn use_system_allocator(mut self) -> RuntimeBuilder {
@@ -108,13 +112,8 @@ impl RuntimeBuilder {
     }
 
     /// register a host function
-    pub fn register_host_function(
-        mut self,
-        function_name: &str,
-        function_ptr: *mut c_void,
-    ) -> RuntimeBuilder {
-        self.host_functions
-            .register_host_function(function_name, function_ptr);
+    pub fn register_host_function<T: Into<HostFunction>>(mut self, function: T) -> RuntimeBuilder {
+        self.host_functions.register_host_function(function);
         self
     }
 

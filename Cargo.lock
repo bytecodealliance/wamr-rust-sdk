@@ -864,10 +864,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wamr-macros"
+version = "1.0.0"
+dependencies = [
+ "quote",
+ "syn 2.0.48",
+]
+
+[[package]]
 name = "wamr-rust-sdk"
 version = "1.0.0"
 dependencies = [
  "esp-idf-sys",
+ "wamr-macros",
  "wamr-sys",
 ]
 
