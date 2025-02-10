@@ -85,7 +85,7 @@
 //!
 //!     let params: Vec<WasmValue> = vec![WasmValue::I32(9), WasmValue::I32(27)];
 //!     let result = function.call(&instance, &params)?;
-//!     assert_eq!(result, WasmValue::I32(9));
+//!     assert_eq!(result, vec![WasmValue::I32(9)]);
 //!
 //!     Ok(())
 //! }
@@ -134,7 +134,7 @@
 //!
 //!     let params: Vec<WasmValue> = vec![WasmValue::I32(9), WasmValue::I32(27)];
 //!     let result = function.call(&instance, &params)?;
-//!     assert_eq!(result, WasmValue::I32(136));
+//!     assert_eq!(result, vec![WasmValue::I32(136)]);
 //!
 //!     Ok(())
 //! }
