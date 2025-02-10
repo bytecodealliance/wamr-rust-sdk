@@ -162,12 +162,28 @@ fn setup_config(
 }
 
 fn build_wamr_libraries(wamr_root: &PathBuf) {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let vmbuild_path = out_dir.join("vmbuild");
+
     let feature_flags = get_feature_flags();
     let mut cfg = setup_config(wamr_root, feature_flags);
-    let dst = cfg.build_target("iwasm_static").build();
+    let dst = cfg.out_dir(vmbuild_path).build_target("iwasm_static").build();
 
     println!("cargo:rustc-link-search=native={}/build", dst.display());
     println!("cargo:rustc-link-lib=static=vmlib");
+}
+
+fn build_aotclib(wamr_root: &Path) {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let aotbuild_path = out_dir.join("aotbuild");
+
+    let wamr_compiler_path = wamr_root.join("wamr-compiler");
+    assert!(wamr_compiler_path.exists());
+
+    Config::new(&wamr_compiler_path)
+        .out_dir(aotbuild_path)
+        .define("WAMR_BUILD_WITH_CUSTOM_LLVM", "1")
+        .build();
 }
 
 fn generate_bindings(wamr_root: &Path) {
@@ -203,6 +219,7 @@ fn main() {
         // because the ESP-IDF build procedure differs from the regular one
         // (build internally by esp-idf-sys),
         build_wamr_libraries(&wamr_root);
+        build_aotclib(&wamr_root);
     }
 
     generate_bindings(&wamr_root);
