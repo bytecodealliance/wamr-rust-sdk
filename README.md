@@ -137,3 +137,57 @@ fn main() -> Result<(), RuntimeError> {
 }
 ```
 
+## Build Instructions
+
+To build the project on different platforms, follow the steps below:
+
+1. **Linux**:
+   - Build the project:
+     ```sh
+     cargo build
+     ```
+
+2. **MacOS (M1)**:
+   - Add the following configuration to `.cargo/config.toml`:
+     ```toml
+     [env]
+     WAMR_BUILD_TARGET = "AARCH64"
+     WAMR_BUILD_PLATFORM = "darwin"
+     ```
+   - Build the project:
+     ```sh
+     cargo build
+     ```
+
+3. **ESP32 (espidf)**:
+   - Build the project:
+     ```sh
+     cargo build --target=espidf
+     ```
+
+#### Using a Dev Container for Building
+
+To simplify the build process, you can use a Dev Container. This is especially useful for building on macOS, where setting up Docker can be tricky. You can use GitHub Codespaces directly.
+
+1. **Setup Dev Container**:
+   - Ensure you have Docker installed.
+   - Clone the repository:
+     ```sh
+     git clone https://github.com/bytecodealliance/wamr-rust-sdk.git
+     cd wamr-rust-sdk
+     ```
+   - Open the project in a Dev Container:
+     - If you are using Visual Studio Code, you can use the "Remote - Containers" extension to open the project in a Dev Container.
+     - Alternatively, you can use GitHub Codespaces to open the project in a Dev Container.
+
+2. **Build the Project**:
+   - Once the Dev Container is set up, you can build the project using the following commands:
+     ```sh
+     cargo build
+     ```
+
+For more information on Dev Containers, refer to the [devcontainer documentation](https://containers.dev/).
+
+For more information on running Docker in Dev Containers on macOS, refer to this [Stack Overflow post](https://stackoverflow.com/questions/77105077/how-to-run-docker-in-devcontainers-on-mac-m1-apple-silicon).
+
+
