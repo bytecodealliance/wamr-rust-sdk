@@ -144,6 +144,10 @@ fn setup_config(
         cfg.define("WAMR_BUILD_PLATFORM", &platform_name);
     }
 
+    if let Ok(target_name) = env::var("WAMR_BUILD_TARGET") {
+        cfg.define("WAMR_BUILD_TARGET", &target_name);
+    }
+
     if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
         cfg.define("SHARED_PLATFORM_CONFIG", &platform_config);
     }
