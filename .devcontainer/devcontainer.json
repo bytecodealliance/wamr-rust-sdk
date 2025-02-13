@@ -28,11 +28,11 @@
     },
     "vscode": {
       "extensions": [
-        "bungcip.better-toml",
         "dtsvet.vscode-wasm",
         "fill-labs.dependi",
         "rust-lang.rust-analyzer",
         "streetsidesoftware.code-spell-checker",
+        "tamasfe.even-better-toml",
         "vadimcn.vscode-lldb"
       ],
     }

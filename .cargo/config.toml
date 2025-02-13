@@ -1,8 +1,27 @@
 [env]
 # vprintf callback. refer to https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/build_wamr.md?plain=1#L193
 #WAMR_BH_VPRINTF = ""
-# https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/port_wamr.md#wamr-porting-guide
-#WAMR_BUILD_PLATFORM = "new OS name"
-#WAMR_SHARED_PLATFORM_CONFIG = "core/shared/platform/new os/shared_platform.cmake"
+
+# for a new platform , please refer to https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/port_wamr.md#wamr-porting-guide
+# need to prepare relative stuff and set the following variables
+# - WAMR_BUILD_PLATFORM
+# - WAMR_BUILD_TARGET
+# - WAMR_BUILD_PLATFORM
+
+# for an existing platform, following variables are required:
+# - WAMR_BUILD_PLATFORM
+# - WAMR_BUILD_TARGET
+#
+# default combination is "linux" and "X86_64" and for convenience, you don't need to set them.
+#
+# for a un-default platform, you need to set the following variables.
+# please refer to CMakeLists.txt in https://github.com/bytecodealliance/wasm-micro-runtime/tree/main/product-mini/platforms for more details.
+# - WAMR_BUILD_PLATFORM. Options are "alios-things", "android", "cosmopolitan", "darwin", "freebsd", "linux", "linux-sgx", "nuttx", "riot", "rt-thread", "vsworks", "windows", "zephyr"
+# - WAMR_BUILD_TARGET. Options are "X86_64", "AMD_64", "X86_32", "AARCH64[sub]", "ARM[sub]", "THUMB[sub]", "MIPS", "XTENSA", "RISCV64[sub]", "RISCV32[sub]"
+
+#WAMR_BUILD_PLATFORM = "OS name"
+#WAMR_BUILD_TARGET = "CPU architecture"
+#WAMR_BUILD_PLATFORM = ""
+
 # change it to your own LLVM lib path
 LLVM_LIB_CFG_PATH = "/usr/lib/llvm-15/cmake/"
