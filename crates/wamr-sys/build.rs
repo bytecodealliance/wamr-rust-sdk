@@ -173,16 +173,17 @@ fn build_wamr_libraries(wamr_root: &PathBuf) {
     println!("cargo:rustc-link-lib=static=vmlib");
 }
 
-fn build_aotclib(wamr_root: &Path) {
+fn build_wamrc(wamr_root: &Path) {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let aotbuild_path = out_dir.join("aotbuild");
+    let wamrc_build_path = out_dir.join("wamrcbuild");
 
     let wamr_compiler_path = wamr_root.join("wamr-compiler");
     assert!(wamr_compiler_path.exists());
 
     Config::new(&wamr_compiler_path)
-        .out_dir(aotbuild_path)
+        .out_dir(wamrc_build_path)
         .define("WAMR_BUILD_WITH_CUSTOM_LLVM", "1")
+        .define("LLVM_DIR", env::var("LLVM_LIB_CFG_PATH").expect("LLVM_LIB_CFG_PATH isn't specified in config.toml"))
         .build();
 }
 
@@ -219,7 +220,7 @@ fn main() {
         // because the ESP-IDF build procedure differs from the regular one
         // (build internally by esp-idf-sys),
         build_wamr_libraries(&wamr_root);
-        build_aotclib(&wamr_root);
+        build_wamrc(&wamr_root);
     }
 
     generate_bindings(&wamr_root);

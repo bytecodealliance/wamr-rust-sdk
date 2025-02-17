@@ -52,9 +52,24 @@ impl<'instance> Function<'instance> {
     #[allow(non_snake_case)]
     fn parse_result(
         &self,
-        result_types: Vec<u8>,
+        instance: &Instance<'instance>,
         result: Vec<u32>,
     ) -> Result<Vec<WasmValue>, RuntimeError> {
+        let result_count =
+            unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
+        if result_count == 0 {
+            return Ok(vec![WasmValue::Void]);
+        }
+
+        let mut result_types = vec![0u8; result_count as usize];
+        unsafe {
+            wasm_func_get_result_types(
+                self.function,
+                instance.get_inner_instance(),
+                result_types.as_mut_ptr(),
+            );
+        }
+
         let mut results = Vec::with_capacity(result_types.len());
         let mut index: usize = 0;
 
@@ -63,23 +78,23 @@ impl<'instance> Function<'instance> {
                 wasm_valkind_enum_WASM_I32
                 | wasm_valkind_enum_WASM_FUNCREF
                 | wasm_valkind_enum_WASM_EXTERNREF => {
-                    results.push(WasmValue::decode_to_i32(result[index..index + 1].to_vec()));
+                    results.push(WasmValue::decode_to_i32(&result[index..index + 1]));
                     index += 1;
                 }
                 wasm_valkind_enum_WASM_I64 => {
-                    results.push(WasmValue::decode_to_i64(result[index..index + 2].to_vec()));
+                    results.push(WasmValue::decode_to_i64(&result[index..index + 2]));
                     index += 2;
                 }
                 wasm_valkind_enum_WASM_F32 => {
-                    results.push(WasmValue::decode_to_f32(result[index..index + 1].to_vec()));
+                    results.push(WasmValue::decode_to_f32(&result[index..index + 1]));
                     index += 1;
                 }
                 wasm_valkind_enum_WASM_F64 => {
-                    results.push(WasmValue::decode_to_f64(result[index..index + 2].to_vec()));
+                    results.push(WasmValue::decode_to_f64(&result[index..index + 2]));
                     index += 2;
                 }
                 wasm_valkind_enum_WASM_V128 => {
-                    results.push(WasmValue::decode_to_v128(result[index..index + 4].to_vec()));
+                    results.push(WasmValue::decode_to_v128(&result[index..index + 4]));
                     index += 4;
                 }
                 _ => return Err(RuntimeError::NotImplemented),
@@ -96,7 +111,6 @@ impl<'instance> Function<'instance> {
     ///
     /// Return `RuntimeError::ExecutionError` if failed.
     #[allow(non_upper_case_globals)]
-    #[allow(non_snake_case)]
     pub fn call(
         &self,
         instance: &'instance Instance<'instance>,
@@ -114,28 +128,30 @@ impl<'instance> Function<'instance> {
         // Maintain sufficient allocated space in the vector rather than just declaring its capacity.
         let result_count =
             unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
-        let mut result_types = vec![0u8; result_count as usize];
-        unsafe {
-            wasm_func_get_result_types(
-                self.function,
-                instance.get_inner_instance(),
-                result_types.as_mut_ptr(),
-            );
-        }
-        let mut capacity = 0;
-        capacity += result_types
-            .iter()
-            .map(|&result_type| match result_type as u32 {
-                wasm_valkind_enum_WASM_I32
-                | wasm_valkind_enum_WASM_FUNCREF
-                | wasm_valkind_enum_WASM_EXTERNREF => 1,
-                wasm_valkind_enum_WASM_I64 => 2,
-                wasm_valkind_enum_WASM_F32 => 1,
-                wasm_valkind_enum_WASM_F64 => 2,
-                wasm_valkind_enum_WASM_V128 => 4,
-                _ => 0,
-            })
-            .sum::<usize>();
+        let capacity = std::cmp::max(param_count, result_count) as usize * 4;
+
+        // let mut result_types = vec![0u8; result_count as usize];
+        // unsafe {
+        //     wasm_func_get_result_types(
+        //         self.function,
+        //         instance.get_inner_instance(),
+        //         result_types.as_mut_ptr(),
+        //     );
+        // }
+        // let mut capacity = 0;
+        // capacity += result_types
+        //     .iter()
+        //     .map(|&result_type| match result_type as u32 {
+        //         wasm_valkind_enum_WASM_I32
+        //         | wasm_valkind_enum_WASM_FUNCREF
+        //         | wasm_valkind_enum_WASM_EXTERNREF => 1,
+        //         wasm_valkind_enum_WASM_I64 => 2,
+        //         wasm_valkind_enum_WASM_F32 => 1,
+        //         wasm_valkind_enum_WASM_F64 => 2,
+        //         wasm_valkind_enum_WASM_V128 => 4,
+        //         _ => 0,
+        //     })
+        //     .sum::<usize>();
 
         // Populate the parameters in the sufficiently allocated argv vector
         let mut argv = Vec::with_capacity(capacity);
@@ -163,12 +179,8 @@ impl<'instance> Function<'instance> {
             }
         }
 
-        // there is no out of bounds problem, because we have precisely precalculated the safe vec size
-        if result_types.is_empty() {
-            Ok(vec![WasmValue::Void])
-        } else {
-            self.parse_result(result_types, argv)
-        }
+        // there is no out of bounds problem, because we have precalculated the safe vec size
+        self.parse_result(instance, argv)
     }
 }
 
