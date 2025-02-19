@@ -49,27 +49,27 @@ impl WasmValue {
         }
     }
 
-    pub fn decode_to_i32(binary: Vec<u32>) -> WasmValue {
+    pub fn decode_to_i32(binary: &[u32]) -> WasmValue {
         let binary: [u32; 1] = [binary[0]];
         WasmValue::I32(unsafe { std::mem::transmute::<[u32; 1], i32>(binary) })
     }
 
-    pub fn decode_to_f32(binary: Vec<u32>) -> WasmValue {
+    pub fn decode_to_f32(binary: &[u32]) -> WasmValue {
         let binary: [u32; 1] = [binary[0]];
         WasmValue::F32(unsafe { std::mem::transmute::<[u32; 1], f32>(binary) })
     }
 
-    pub fn decode_to_i64(binary: Vec<u32>) -> WasmValue {
+    pub fn decode_to_i64(binary: &[u32]) -> WasmValue {
         let binary: [u32; 2] = [binary[0], binary[1]];
         WasmValue::I64(unsafe { std::mem::transmute::<[u32; 2], i64>(binary) })
     }
 
-    pub fn decode_to_f64(binary: Vec<u32>) -> WasmValue {
+    pub fn decode_to_f64(binary: &[u32]) -> WasmValue {
         let binary: [u32; 2] = [binary[0], binary[1]];
         WasmValue::F64(unsafe { std::mem::transmute::<[u32; 2], f64>(binary) })
     }
 
-    pub fn decode_to_v128(binary: Vec<u32>) -> WasmValue {
+    pub fn decode_to_v128(binary: &[u32]) -> WasmValue {
         let binary: [u32; 4] = [binary[0], binary[1], binary[2], binary[3]];
         WasmValue::V128(unsafe { std::mem::transmute::<[u32; 4], i128>(binary) })
     }
@@ -108,11 +108,11 @@ mod tests {
         }
 
         let decoded_values: Vec<WasmValue> = vec![
-            WasmValue::decode_to_i32(binary[0..1].to_vec()),
-            WasmValue::decode_to_i64(binary[1..3].to_vec()),
-            WasmValue::decode_to_f32(binary[3..4].to_vec()),
-            WasmValue::decode_to_f64(binary[4..6].to_vec()),
-            WasmValue::decode_to_v128(binary[6..10].to_vec()),
+            WasmValue::decode_to_i32(&binary[0..1]),
+            WasmValue::decode_to_i64(&binary[1..3]),
+            WasmValue::decode_to_f32(&binary[3..4]),
+            WasmValue::decode_to_f64(&binary[4..6]),
+            WasmValue::decode_to_v128(&binary[6..10]),
         ];
 
         assert_eq!(values, decoded_values);
