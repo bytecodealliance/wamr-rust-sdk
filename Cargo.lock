@@ -868,7 +868,6 @@ name = "wamr-rust-sdk"
 version = "1.0.0"
 dependencies = [
  "esp-idf-sys",
- "walkdir",
  "wamr-sys",
 ]
 

@@ -130,29 +130,6 @@ impl<'instance> Function<'instance> {
             unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
         let capacity = std::cmp::max(param_count, result_count) as usize * 4;
 
-        // let mut result_types = vec![0u8; result_count as usize];
-        // unsafe {
-        //     wasm_func_get_result_types(
-        //         self.function,
-        //         instance.get_inner_instance(),
-        //         result_types.as_mut_ptr(),
-        //     );
-        // }
-        // let mut capacity = 0;
-        // capacity += result_types
-        //     .iter()
-        //     .map(|&result_type| match result_type as u32 {
-        //         wasm_valkind_enum_WASM_I32
-        //         | wasm_valkind_enum_WASM_FUNCREF
-        //         | wasm_valkind_enum_WASM_EXTERNREF => 1,
-        //         wasm_valkind_enum_WASM_I64 => 2,
-        //         wasm_valkind_enum_WASM_F32 => 1,
-        //         wasm_valkind_enum_WASM_F64 => 2,
-        //         wasm_valkind_enum_WASM_V128 => 4,
-        //         _ => 0,
-        //     })
-        //     .sum::<usize>();
-
         // Populate the parameters in the sufficiently allocated argv vector
         let mut argv = Vec::with_capacity(capacity);
         for p in params {
@@ -189,9 +166,8 @@ mod tests {
     use super::*;
     use crate::{module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder};
     use std::{
-        process::{Command, Stdio}, path::Path, path::PathBuf, env,
+        process::{Command, Stdio}, path::Path, path::PathBuf, env, fs,
     };
-    use walkdir::WalkDir;
 
     #[test]
     fn test_func_in_wasm32_unknown() {
@@ -357,17 +333,34 @@ mod tests {
 
         // Get the path to wamrc binary
         let base = match Path::new("target/release").exists() {
-            true => "target/release",
-            false => "target/debug",
+            true => "target/release/build",
+            false => "target/debug/build",
         };
-        let found = WalkDir::new(base)
-            .into_iter()
-            .filter_map(Result::ok)
-            .find(|entry| entry.file_name() == "wamrc");
+        let base_entries = fs::read_dir(base);
+        assert!(base_entries.is_ok());
+        let found = base_entries.unwrap()
+            .filter_map(|entry| entry.ok())
+            .map(|entry| {
+                let path = entry.path();
+                let name = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                (path, name)
+            })
+            .filter_map(|(path, name)| {
+                if name.starts_with("wamr-sys") && path.join("out").join("wamrcbuild").join("bin").join("wamrc").exists() {
+                    Some(path.join("out").join("wamrcbuild").join("bin").join("wamrc"))
+                } else {
+                    None
+                }
+            })
+            .next();
         assert!(found.is_some());
         let wamrc_path = found.unwrap();
 
-        let wamrc_output = Command::new(wamrc_path.path())
+        let wamrc_output = Command::new(wamrc_path)
             .arg("--bounds-checks=1")
             .arg("-o")
             .arg(aot_dest.clone())
@@ -392,6 +385,7 @@ mod tests {
 
         let wrapped_result = function.call(instance, &vec![]);
         let unwrapped_result = wrapped_result.unwrap();
+        
         assert_eq!(unwrapped_result.len(), 12);
         assert_eq!(
             unwrapped_result,
