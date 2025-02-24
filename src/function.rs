@@ -14,6 +14,7 @@ use wamr_sys::{
     wasm_runtime_get_wasi_exit_code, wasm_runtime_lookup_function,
     wasm_valkind_enum_WASM_EXTERNREF, wasm_valkind_enum_WASM_F32, wasm_valkind_enum_WASM_F64,
     wasm_valkind_enum_WASM_FUNCREF, wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64,
+    wasm_valkind_enum_WASM_V128,
 };
 
 use crate::{
@@ -48,6 +49,7 @@ impl<'instance> Function<'instance> {
     }
 
     #[allow(non_upper_case_globals)]
+    #[allow(non_snake_case)]
     fn parse_result(
         &self,
         instance: &Instance<'instance>,
@@ -76,26 +78,24 @@ impl<'instance> Function<'instance> {
                 wasm_valkind_enum_WASM_I32
                 | wasm_valkind_enum_WASM_FUNCREF
                 | wasm_valkind_enum_WASM_EXTERNREF => {
-                    results.push(WasmValue::decode_to_i32(vec![result[index]]));
+                    results.push(WasmValue::decode_to_i32(&result[index..index + 1]));
                     index += 1;
                 }
                 wasm_valkind_enum_WASM_I64 => {
-                    results.push(WasmValue::decode_to_i64(vec![
-                        result[index],
-                        result[index + 1],
-                    ]));
+                    results.push(WasmValue::decode_to_i64(&result[index..index + 2]));
                     index += 2;
                 }
                 wasm_valkind_enum_WASM_F32 => {
-                    results.push(WasmValue::decode_to_f32(vec![result[index]]));
+                    results.push(WasmValue::decode_to_f32(&result[index..index + 1]));
                     index += 1;
                 }
                 wasm_valkind_enum_WASM_F64 => {
-                    results.push(WasmValue::decode_to_f64(vec![
-                        result[index],
-                        result[index + 1],
-                    ]));
+                    results.push(WasmValue::decode_to_f64(&result[index..index + 2]));
                     index += 2;
+                }
+                wasm_valkind_enum_WASM_V128 => {
+                    results.push(WasmValue::decode_to_v128(&result[index..index + 4]));
+                    index += 4;
                 }
                 _ => return Err(RuntimeError::NotImplemented),
             }
@@ -110,6 +110,7 @@ impl<'instance> Function<'instance> {
     /// # Error
     ///
     /// Return `RuntimeError::ExecutionError` if failed.
+    #[allow(non_upper_case_globals)]
     pub fn call(
         &self,
         instance: &'instance Instance<'instance>,
@@ -127,7 +128,9 @@ impl<'instance> Function<'instance> {
         // Maintain sufficient allocated space in the vector rather than just declaring its capacity.
         let result_count =
             unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
-        let capacity = std::cmp::max(param_count, result_count) as usize * 2;
+        let capacity = std::cmp::max(param_count, result_count) as usize * 4;
+
+        // Populate the parameters in the sufficiently allocated argv vector
         let mut argv = Vec::with_capacity(capacity);
         for p in params {
             argv.append(&mut p.encode());
@@ -153,7 +156,7 @@ impl<'instance> Function<'instance> {
             }
         }
 
-        // there is no out of bounds problem, because we precalculated the safe vec size
+        // there is no out of bounds problem, because we have precalculated the safe vec size
         self.parse_result(instance, argv)
     }
 }
@@ -162,7 +165,9 @@ impl<'instance> Function<'instance> {
 mod tests {
     use super::*;
     use crate::{module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder};
-    use std::path::PathBuf;
+    use std::{
+        process::{Command, Stdio}, path::Path, path::PathBuf, env, fs,
+    };
 
     #[test]
     fn test_func_in_wasm32_unknown() {
@@ -296,5 +301,108 @@ mod tests {
         let result = function.call(instance, &vec![]);
         assert!(result.is_ok());
         println!("{:?}", result.unwrap());
+    }
+
+    #[test]
+    fn test_func_in_multi_v128_return() {
+        let runtime = Runtime::new().unwrap();
+
+        // (module
+        // (func (export "multi") (result f64 f32 i32 i64 f64 f32 i32 i64 v128 v128 v128 v128)
+        //     f64.const 22.2222
+        //     f32.const 1.57
+        //     i32.const 42
+        //     i64.const 3523
+        //     f64.const 22.2222
+        //     f32.const 1.57
+        //     i32.const 42
+        //     i64.const 3523
+        //     v128.const i32x4 1 2 3 4
+        //     v128.const f32x4 1 2 3 4
+        //     v128.const i64x2 1 2
+        //     v128.const f64x2 1 2)
+        // )
+        let mut wasm_src = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        wasm_src.push("resources/test");
+        wasm_src.push("multiret.wasm");
+
+        // Compiling to AOT
+        let mut aot_dest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        aot_dest.push("resources/test");
+        aot_dest.push("multiret.aot");
+
+        // Get the path to wamrc binary
+        let base = match Path::new("target/release").exists() {
+            true => "target/release/build",
+            false => "target/debug/build",
+        };
+        let base_entries = fs::read_dir(base);
+        assert!(base_entries.is_ok());
+        let found = base_entries.unwrap()
+            .filter_map(|entry| entry.ok())
+            .map(|entry| {
+                let path = entry.path();
+                let name = path
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_string();
+                (path, name)
+            })
+            .filter_map(|(path, name)| {
+                if name.starts_with("wamr-sys") && path.join("out").join("wamrcbuild").join("bin").join("wamrc").exists() {
+                    Some(path.join("out").join("wamrcbuild").join("bin").join("wamrc"))
+                } else {
+                    None
+                }
+            })
+            .next();
+        assert!(found.is_some());
+        let wamrc_path = found.unwrap();
+
+        let wamrc_output = Command::new(wamrc_path)
+            .arg("--bounds-checks=1")
+            .arg("-o")
+            .arg(aot_dest.clone())
+            .arg(wasm_src.clone())
+            .stderr(Stdio::piped())  
+            .stdout(Stdio::piped())
+            .output()
+            .unwrap();
+        assert!(String::from_utf8_lossy(&wamrc_output.stdout).contains("Compile success"));
+
+        let module = Module::from_file(&runtime, aot_dest.as_path());
+        assert!(module.is_ok());
+        let module = module.unwrap();
+
+        let instance = Instance::new(&runtime, &module, 1024 * 64);
+        assert!(instance.is_ok());
+        let instance: &Instance = &instance.unwrap();
+
+        let function = Function::find_export_func(instance, "multi");
+        assert!(function.is_ok());
+        let function = function.unwrap();
+
+        let wrapped_result = function.call(instance, &vec![]);
+        let unwrapped_result = wrapped_result.unwrap();
+        
+        assert_eq!(unwrapped_result.len(), 12);
+        assert_eq!(
+            unwrapped_result,
+            vec![
+                WasmValue::F64(22.2222),
+                WasmValue::F32(1.57),
+                WasmValue::I32(42),
+                WasmValue::I64(3523),
+                WasmValue::F64(22.2222),
+                WasmValue::F32(1.57),
+                WasmValue::I32(42),
+                WasmValue::I64(3523),
+                WasmValue::V128(316912650112397582603894390785),
+                WasmValue::V128(85735205748011485687928662073142149120),
+                WasmValue::V128(36893488147419103233),
+                WasmValue::V128(85070591730234615870450834276742070272)
+            ]
+        );
     }
 }
