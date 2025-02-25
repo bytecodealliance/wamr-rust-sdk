@@ -28,6 +28,7 @@
     },
     "vscode": {
       "extensions": [
+        "DavidAnson.vscode-markdownlint",
         "dtsvet.vscode-wasm",
         "fill-labs.dependi",
         "rust-lang.rust-analyzer",
