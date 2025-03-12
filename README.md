@@ -88,9 +88,10 @@ fn main() -> Result<(), RuntimeError> {
 }
 ```
 
-#### Example: more configuration for runtime.
+#### Example: more configuration for runtime
 
 With more configuration, runtime is capable to run .wasm with variant features, like
+
 - Wasm without WASI requirement. Usually, it means that the .wasm is compiled with `-nostdlib`
   or `--target wasm32-unknown-unknown`
 - Configure runtime.
@@ -137,3 +138,66 @@ fn main() -> Result<(), RuntimeError> {
 }
 ```
 
+### Build Instructions
+
+#### Building `wamr-sys` and `wamr-rust-sdk`
+
+To build the `wamr-sys` and `wamr-rust-sdk` crates, follow these steps:
+
+1. Ensure you have the Rust toolchain installed.
+2. Clone the repository:
+
+   ```sh
+   git clone https://github.com/bytecodealliance/wamr-rust-sdk.git
+   cd wamr-rust-sdk
+   ```
+
+3. Build the `wamr-sys` crate:
+
+   ```sh
+   cargo build -p wamr-sys
+   ```
+
+4. Build the `wamr-rust-sdk` crate:
+
+   ```sh
+   cargo build
+   ```
+
+#### Preparing a Development and Building Environment
+
+##### For non-espidf targets
+
+1. Prepare the Rust toolchain
+
+2. If targeting a non-linux platform, set `WAMR_BUILD_TARGET` and `WAMR_BUILD_PLATFORM` in the `.cargo/config.toml`:
+
+   ```toml
+   [env]
+   WAMR_BUILD_PLATFORM = "OS name"
+   WAMR_BUILD_TARGET = "CPU architecture"
+   ```
+
+3. If targeting a platform not supplied by WAMR, refer to the [WAMR porting guide](https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/port_wamr.md#wamr-porting-guide) and set `WAMR_BUILD_TARGET`, `WAMR_BUILD_PLATFORM` and `WAMR_SHARED_PLATFORM_CONFIG` in the `.cargo/config.toml` properly.
+
+##### For espidf targets
+
+1. Get the latest information from [The Rust on ESP Book](https://docs.esp-rs.org/book/writing-your-own-application/index.html).
+2. Please make sure you have installed all [prerequisites](https://github.com/esp-rs/esp-idf-template?tab=readme-ov-file#prerequisites) first!
+3. Generate projects from templates following the instructions in [The Rust on ESP Book](https://docs.esp-rs.org/book/writing-your-own-application/generate-project/index.html).
+
+   ``` sh
+   $ cargo generate esp-rs/esp-idf-template cargo
+   # follow prompts from the command
+   ```
+
+4. Add the following configuration to your project's `Cargo.toml`:
+
+   ```toml
+   wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", features = ["esp-idf"] }
+
+
+#### BKMs
+
+- [Rust on ESP-IDF "Hello, World" template](https://github.com/esp-rs/esp-idf-template?tab=readme-ov-file#rust-on-esp-idf-hello-world-template) is a good example
+- Ensure that `LIBCLANG_PATH` is correctly set (something like: */home/<user>/.rustup/toolchains/esp/xtensa-esp32-elf-clang/esp-<version>/esp-clang/lib*, if on a Mac). If not, there might be something wrong with your espup installation.
