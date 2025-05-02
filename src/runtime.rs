@@ -91,10 +91,10 @@ impl RuntimeBuilder {
 
     /// system allocator mode
     /// allocate memory from pool, as a pre-allocated buffer, for runtime consumed memory
-    pub fn use_memory_pool(mut self, mut pool: Vec<u8>, pool_size: u32) -> RuntimeBuilder {
+    pub fn use_memory_pool(mut self, mut pool: Vec<u8>) -> RuntimeBuilder {
         self.args.mem_alloc_type = mem_alloc_type_t_Alloc_With_Pool;
         self.args.mem_alloc_option.pool.heap_buf = pool.as_mut_ptr() as *mut c_void;
-        self.args.mem_alloc_option.pool.heap_size = pool_size;
+        self.args.mem_alloc_option.pool.heap_size = pool.len() as u32;
         self
     }
 

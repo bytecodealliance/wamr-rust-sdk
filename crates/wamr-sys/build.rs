@@ -144,6 +144,10 @@ fn setup_config(
         cfg.define("WAMR_BUILD_PLATFORM", &platform_name);
     }
 
+    if let Ok(target_name) = env::var("WAMR_BUILD_TARGET") {
+        cfg.define("WAMR_BUILD_TARGET", &target_name);
+    }
+
     if let Ok(platform_config) = env::var("WAMR_SHARED_PLATFORM_CONFIG") {
         cfg.define("SHARED_PLATFORM_CONFIG", &platform_config);
     }
@@ -162,12 +166,29 @@ fn setup_config(
 }
 
 fn build_wamr_libraries(wamr_root: &PathBuf) {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let vmbuild_path = out_dir.join("vmbuild");
+
     let feature_flags = get_feature_flags();
     let mut cfg = setup_config(wamr_root, feature_flags);
-    let dst = cfg.build_target("iwasm_static").build();
+    let dst = cfg.out_dir(vmbuild_path).build_target("iwasm_static").build();
 
     println!("cargo:rustc-link-search=native={}/build", dst.display());
     println!("cargo:rustc-link-lib=static=vmlib");
+}
+
+fn build_wamrc(wamr_root: &Path) {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let wamrc_build_path = out_dir.join("wamrcbuild");
+
+    let wamr_compiler_path = wamr_root.join("wamr-compiler");
+    assert!(wamr_compiler_path.exists());
+
+    Config::new(&wamr_compiler_path)
+        .out_dir(wamrc_build_path)
+        .define("WAMR_BUILD_WITH_CUSTOM_LLVM", "1")
+        .define("LLVM_DIR", env::var("LLVM_LIB_CFG_PATH").expect("LLVM_LIB_CFG_PATH isn't specified in config.toml"))
+        .build();
 }
 
 fn generate_bindings(wamr_root: &Path) {
@@ -203,6 +224,7 @@ fn main() {
         // because the ESP-IDF build procedure differs from the regular one
         // (build internally by esp-idf-sys),
         build_wamr_libraries(&wamr_root);
+        build_wamrc(&wamr_root);
     }
 
     generate_bindings(&wamr_root);

@@ -53,10 +53,10 @@
 //!
 //! ## Examples
 //!
-//! ### Example: to run a wasm32-wasi .wasm
+//! ### Example: to run a wasm32-wasip1 .wasm
 //!
-//! *wasm32-wasi* is a most common target for Wasm. It means that the .wasm is compiled with
-//! `cargo build --target wasm32-wasi` or `wasi-sdk/bin/clang --target wasm32-wasi`.
+//! *wasm32-wasip1* is a most common target for Wasm. It means that the .wasm is compiled with
+//! `cargo build --target wasm32-wasip1` or `wasi-sdk/bin/clang --target wasm32-wasip1`.
 //!
 //! Say there is a gcd_wasm32_wasi.wasm which includes a function named *gcd*. It returns the GCD
 //! of two parameters.
@@ -86,7 +86,7 @@
 //!
 //!     let params: Vec<WasmValue> = vec![WasmValue::I32(9), WasmValue::I32(27)];
 //!     let result = function.call(&instance, &params)?;
-//!     assert_eq!(result, WasmValue::I32(9));
+//!     assert_eq!(result, vec![WasmValue::I32(9)]);
 //!
 //!     Ok(())
 //! }
@@ -136,7 +136,7 @@
 //!
 //!     let params: Vec<WasmValue> = vec![WasmValue::I32(9), WasmValue::I32(27)];
 //!     let result = function.call(&instance, &params)?;
-//!     assert_eq!(result, WasmValue::I32(136));
+//!     assert_eq!(result, vec![WasmValue::I32(136)]);
 //!
 //!     Ok(())
 //! }
