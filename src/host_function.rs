@@ -71,16 +71,31 @@ mod tests {
     use std::env;
     use std::path::PathBuf;
 
+    static mut EXTRA_FN: Option<extern "C" fn() -> i32> = None;
+
+    extern "C" fn extra_trampoline() -> i32 {
+        unsafe {
+            if let Some(f) = EXTRA_FN {
+                f()
+            } else {
+                panic!("Function pointer not set")
+            }
+        }
+    }
+
     extern "C" fn extra() -> i32 {
         100
     }
 
     #[test]
-    #[ignore]
     fn test_host_function() {
+        unsafe {
+            EXTRA_FN = Some(extra);
+        }
+
         let runtime = Runtime::builder()
             .use_system_allocator()
-            .register_host_function("extra", extra as *mut c_void)
+            .register_host_function("extra", extra_trampoline as *mut c_void)
             .build()
             .unwrap();
 
