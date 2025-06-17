@@ -171,10 +171,10 @@ fn build_wamr_libraries(wamr_root: &PathBuf) {
 
     let feature_flags = get_feature_flags();
     let mut cfg = setup_config(wamr_root, feature_flags);
-    let dst = cfg.out_dir(vmbuild_path).build_target("iwasm_static").build();
+    let dst = cfg.out_dir(vmbuild_path).build_target("vmlib").build();
 
     println!("cargo:rustc-link-search=native={}/build", dst.display());
-    println!("cargo:rustc-link-lib=static=vmlib");
+    println!("cargo:rustc-link-lib=static=iwasm");
 }
 
 fn build_wamrc(wamr_root: &Path) {
