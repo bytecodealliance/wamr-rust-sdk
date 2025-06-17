@@ -24,4 +24,4 @@
 #WAMR_BUILD_PLATFORM = ""
 
 # change it to your own LLVM lib path
-LLVM_LIB_CFG_PATH = "/usr/lib/llvm-15/cmake/"
+LLVM_LIB_CFG_PATH = "/usr/lib/llvm-18/cmake/"
