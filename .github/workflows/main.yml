@@ -39,7 +39,7 @@ jobs:
   clippy_check:
     # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
     # so we use 22.04
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,7 +53,7 @@ jobs:
   test:
     # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
     # so we use 22.04
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
