@@ -37,8 +37,7 @@ env:
 jobs:
   # linter
   clippy_check:
-    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
-    # so we use 22.04
+    # ubuntu 24.04 supports have LLVM 18(https://apt.llvm.org/noble/dists/),
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -76,8 +75,7 @@ jobs:
 
   # all test cases with default features
   test:
-    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
-    # so we use 22.04
+    # ubuntu 24.04 supports LLVM 18(https://apt.llvm.org/noble/dists/),
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
