@@ -37,13 +37,37 @@ env:
 jobs:
   # linter
   clippy_check:
-    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
-    # so we use 22.04
-    runs-on: ubuntu-22.04
+    # ubuntu 24.04 supports have LLVM 18(https://apt.llvm.org/noble/dists/),
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install LLVM 18
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y llvm-18-dev libclang-18-dev libcurl4-openssl-dev libedit-dev
 
       - name: Run Clippy
         run: |
@@ -51,13 +75,35 @@ jobs:
 
   # all test cases with default features
   test:
-    # ubuntu 24.04 doesn't have LLVM 15(https://apt.llvm.org/noble/dists/),
-    # so we use 22.04
-    runs-on: ubuntu-22.04
+    # ubuntu 24.04 supports LLVM 18(https://apt.llvm.org/noble/dists/),
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install LLVM 18
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y llvm-18-dev libclang-18-dev libcurl4-openssl-dev libedit-dev
 
       - name: Run test cases
         run: cargo test --lib
