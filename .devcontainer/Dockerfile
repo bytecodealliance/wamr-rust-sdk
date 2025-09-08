@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/rust:1-1-bullseye
+FROM mcr.microsoft.com/devcontainers/rust:2-1-bullseye
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asian/Shanghai
