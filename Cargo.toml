@@ -39,7 +39,8 @@ bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_
 component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
 
 [features]
-default = ["std", "wamr-sys/default-set"]
+default = ["std", "default-set", "libc-wasi"]
+default-set = ["wamr-sys/default-set"]
 std = ["wamr-sys/std"]
 esp-idf = ["esp-idf-sys", "wamr-sys/esp-idf"]
 
