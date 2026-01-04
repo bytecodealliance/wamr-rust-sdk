@@ -255,6 +255,7 @@ fn build_wamr_libraries(wamr_root: &PathBuf) {
     println!("cargo:rustc-link-search=native={}", dst.display());
 }
 
+#[cfg(feature = "wamrc")]
 fn build_wamrc(wamr_root: &Path) {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let wamrc_build_path = out_dir.join("wamrcbuild");
@@ -310,11 +311,17 @@ fn main() {
             let lib = t.spawn(|| {
                 build_wamr_libraries(&wamr_root);
             });
-            let wamrc = t.spawn(|| {
-                // build_wamrc(&wamr_root);
-            });
+            #[cfg(feature = "wamrc")]
+            {
+                let wamrc = t.spawn(|| {
+                    build_wamrc(&wamr_root);
+                });
+            }
             lib.join().expect("lib thread panicked");
-            wamrc.join().expect("wamrc thread panicked");
+            #[cfg(feature = "wamrc")]
+            {
+                wamrc.join().expect("wamrc thread panicked");
+            }
         });
     }
 

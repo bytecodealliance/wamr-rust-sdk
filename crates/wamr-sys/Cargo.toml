@@ -71,3 +71,5 @@ tail-call = [] # WAMR_BUILD_TAIL_CALL
 threads-manager = [] # WAMR_BUILD_THREAD_MGR
 wasi-nn = [] # WAMR_BUILD_WASI_NN
 wasi-threads = [] # WAMR_BUILD_LIB_WASI_THREADS
+
+wamrc = []
