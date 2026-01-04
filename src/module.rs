@@ -25,7 +25,7 @@ use alloc::ffi::CString;
 use wamr_sys::{
     wasm_module_t, wasm_runtime_load, wasm_runtime_set_module_name, wasm_runtime_unload,
 };
-#[cfg(all(feature = "std", feature = "libc-wasi"))]
+#[cfg(all(feature = "std", feature = "wasi"))]
 use wamr_sys::{
     wasm_runtime_set_wasi_addr_pool, wasm_runtime_set_wasi_args,
     wasm_runtime_set_wasi_ns_lookup_pool,
@@ -133,7 +133,7 @@ impl<'runtime> Module<'runtime> {
     /// set Wasi context for a module
     ///
     /// This function should be called before `Instance::new`
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     pub fn set_wasi_context(&mut self, wasi_ctx: WasiCtx) {
         self.wasi_ctx = wasi_ctx;
 
@@ -219,11 +219,11 @@ impl Drop for Module<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     use crate::wasi_context::WasiCtxBuilder;
     use crate::{helper::cstr_to_string, runtime::Runtime};
     use alloc::{vec, vec::Vec};
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     use std::path::PathBuf;
     use wamr_sys::wasm_runtime_get_module_name;
 
@@ -261,7 +261,7 @@ mod tests {
         assert!(module.is_ok());
     }
 
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_module_from_file() {
         let runtime = Runtime::new().unwrap();
@@ -273,7 +273,7 @@ mod tests {
         assert!(module.is_ok());
     }
 
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_module_with_wasi_args() {
         let runtime = Runtime::new().unwrap();

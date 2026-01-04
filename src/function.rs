@@ -17,7 +17,7 @@ use wamr_sys::{
     wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64, wasm_valkind_enum_WASM_V128,
 };
 
-#[cfg(feature = "libc-wasi")]
+#[cfg(feature = "wasi")]
 use wamr_sys::wasm_runtime_get_wasi_exit_code;
 
 use crate::{
@@ -172,9 +172,9 @@ impl<'instance> Function<'instance> {
                 let error_info = ExecError {
                     message: exception_to_string(exception_c),
                     exit_code: {
-                        #[cfg(feature = "libc-wasi")]
+                        #[cfg(feature = "wasi")]
                         let code = wasm_runtime_get_wasi_exit_code(instance.get_inner_instance());
-                        #[cfg(not(feature = "libc-wasi"))]
+                        #[cfg(not(feature = "wasi"))]
                         let code = 0xff;
                         code
                     },
@@ -191,10 +191,10 @@ impl<'instance> Function<'instance> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     use crate::wasi_context::WasiCtxBuilder;
     use crate::{module::Module, runtime::Runtime};
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     use std::{
         env, fs,
         path::Path,
@@ -273,7 +273,7 @@ mod tests {
         );
     }
 
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_func_in_wasm32_wasi() {
         let runtime = Runtime::new().unwrap();
@@ -305,7 +305,7 @@ mod tests {
         assert_eq!(result.unwrap(), vec![WasmValue::I32(27)]);
     }
 
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_func_in_wasm32_wasi_w_args() {
         let runtime = Runtime::new().unwrap();
@@ -336,7 +336,7 @@ mod tests {
         println!("{:?}", result.unwrap());
     }
 
-    #[cfg(all(feature = "std", feature = "libc-wasi"))]
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[ignore]
     #[test]
     fn test_func_in_multi_v128_return() {

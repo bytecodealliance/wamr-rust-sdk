@@ -70,10 +70,10 @@
 //! };
 //! use std::path::PathBuf;
 //!
-//! # #[cfg(not(feature = "libc-wasi"))]
+//! # #[cfg(not(feature = "wasi"))]
 //! fn main() {}
 //!
-//! # #[cfg(feature = "libc-wasi")]
+//! # #[cfg(feature = "wasi")]
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::new()?;
 //!
@@ -121,10 +121,10 @@
 //!     100
 //! }
 //!
-//! # #[cfg(not(feature = "libc-wasi"))]
+//! # #[cfg(not(feature = "wasi"))]
 //! fn main() {}
 //!
-//! # #[cfg(feature = "libc-wasi")]
+//! # #[cfg(feature = "wasi")]
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::builder()
 //!         .use_system_allocator()

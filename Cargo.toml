@@ -57,8 +57,8 @@ hw-bound-check = ["wamr-sys/hw-bound-check"]
 interpreter = ["wamr-sys/interpreter"]
 legacy-exception-handling = ["wamr-sys/legacy-exception-handling"]
 libc-builtin = ["wamr-sys/libc-builtin"]
-libc-uvwasi = ["wamr-sys/libc-uvwasi", "std"]
-libc-wasi = ["wamr-sys/libc-wasi", "std"]
+libc-uvwasi = ["wamr-sys/libc-uvwasi", "std", "wasi"]
+libc-wasi = ["wamr-sys/libc-wasi", "std", "wasi"]
 llvmjit = ["wamr-sys/llvmjit"]
 memory-profiling = ["wamr-sys/memory-profiling"]
 memory64 = ["wamr-sys/memory64"]
@@ -80,3 +80,5 @@ wasi-threads = ["wamr-sys/wasi-threads"]
 
 # Deprecated aliases for backwards compatibility
 fast-interp = ["fast-interpreter"]
+
+wasi = []
