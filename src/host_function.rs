@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
+use alloc::{ffi::CString, vec::Vec};
 /// This is a wrapper of a host defined(Rust) function.
-use std::ffi::{c_void, CString};
-use std::ptr;
+use core::ffi::{c_char, c_void};
+use core::ptr;
 
 use wamr_sys::NativeSymbol;
 
@@ -40,8 +41,30 @@ impl HostFunctionList {
         });
 
         let last = self.host_functions.last().unwrap();
-        self.native_symbols
-            .push(pack_host_function(&(last.function_name), function_ptr));
+        self.native_symbols.push(pack_host_function(
+            &(last.function_name),
+            function_ptr,
+            ptr::null(),
+        ));
+    }
+
+    pub fn register_host_function_with_signature(
+        &mut self,
+        function_name: &str,
+        function_ptr: *mut c_void,
+        signature: *const c_char,
+    ) {
+        self.host_functions.push(HostFunction {
+            function_name: CString::new(function_name).unwrap(),
+            function_ptr,
+        });
+
+        let last = self.host_functions.last().unwrap();
+        self.native_symbols.push(pack_host_function(
+            &(last.function_name),
+            function_ptr,
+            signature,
+        ));
     }
 
     pub fn get_native_symbols(&mut self) -> &mut Vec<NativeSymbol> {
@@ -53,11 +76,15 @@ impl HostFunctionList {
     }
 }
 
-pub fn pack_host_function(function_name: &CString, function_ptr: *mut c_void) -> NativeSymbol {
+pub fn pack_host_function(
+    function_name: &CString,
+    function_ptr: *mut c_void,
+    signature: *const i8,
+) -> NativeSymbol {
     NativeSymbol {
         symbol: function_name.as_ptr(),
         func_ptr: function_ptr,
-        signature: ptr::null(),
+        signature,
         attachment: ptr::null_mut(),
     }
 }
@@ -68,13 +95,16 @@ mod tests {
     use crate::{
         function::Function, instance::Instance, module::Module, runtime::Runtime, value::WasmValue,
     };
+    #[cfg(feature = "std")]
     use std::env;
+    #[cfg(feature = "std")]
     use std::path::PathBuf;
 
     extern "C" fn extra() -> i32 {
         100
     }
 
+    #[cfg(feature = "std")]
     #[test]
     #[ignore]
     fn test_host_function() {

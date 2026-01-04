@@ -70,6 +70,10 @@
 //! };
 //! use std::path::PathBuf;
 //!
+//! # #[cfg(not(feature = "libc-wasi"))]
+//! fn main() {}
+//!
+//! # #[cfg(feature = "libc-wasi")]
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::new()?;
 //!
@@ -117,6 +121,10 @@
 //!     100
 //! }
 //!
+//! # #[cfg(not(feature = "libc-wasi"))]
+//! fn main() {}
+//!
+//! # #[cfg(feature = "libc-wasi")]
 //! fn main() -> Result<(), RuntimeError> {
 //!     let runtime = Runtime::builder()
 //!         .use_system_allocator()
@@ -141,9 +149,17 @@
 //! ```
 //!
 
-use std::error;
-use std::fmt;
+#![cfg_attr(not(feature = "std"), no_std)]
+
+use alloc::string::String;
+use core::error;
+use core::fmt;
+use host_function::HostFunctionList;
+#[cfg(feature = "std")]
 use std::io;
+use wamr_sys::NativeSymbol;
+use wamr_sys::wasm_runtime_register_natives;
+
 pub use wamr_sys as sys;
 
 pub mod function;
@@ -153,6 +169,10 @@ pub mod instance;
 pub mod module;
 pub mod runtime;
 pub mod value;
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
 pub mod wasi_context;
 
 #[derive(Debug)]
@@ -168,6 +188,7 @@ pub enum RuntimeError {
     /// Runtime initialization error.
     InitializationFailure,
     /// file operation error. usually while loading(compilation) a .wasm
+    #[cfg(feature = "std")]
     WasmFileFSError(std::io::Error),
     /// A compilation error. usually means that the .wasm file is invalid
     CompilationError(String),
@@ -184,6 +205,7 @@ impl fmt::Display for RuntimeError {
         match self {
             RuntimeError::NotImplemented => write!(f, "Not implemented"),
             RuntimeError::InitializationFailure => write!(f, "Runtime initialization failure"),
+            #[cfg(feature = "std")]
             RuntimeError::WasmFileFSError(e) => write!(f, "Wasm file operation error: {}", e),
             RuntimeError::CompilationError(e) => write!(f, "Wasm compilation error: {}", e),
             RuntimeError::InstantiationFailure(e) => write!(f, "Wasm instantiation failure: {}", e),
@@ -200,14 +222,29 @@ impl fmt::Display for RuntimeError {
 impl error::Error for RuntimeError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match self {
+            #[cfg(feature = "std")]
             RuntimeError::WasmFileFSError(e) => Some(e),
             _ => None,
         }
     }
 }
 
+#[cfg(feature = "std")]
 impl From<io::Error> for RuntimeError {
     fn from(e: io::Error) -> Self {
         RuntimeError::WasmFileFSError(e)
+    }
+}
+
+pub fn register_host_functions(host_functions: &mut HostFunctionList) {
+    let module_name_ptr = host_functions.module_name.as_ptr();
+    let native_symbols = host_functions.get_native_symbols();
+    let n = native_symbols.len() as u32;
+    unsafe {
+        wasm_runtime_register_natives(
+            module_name_ptr,
+            native_symbols.as_ptr() as *mut NativeSymbol,
+            n,
+        );
     }
 }

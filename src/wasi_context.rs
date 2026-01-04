@@ -5,7 +5,7 @@
 
 //! prepare wasi context
 
-use std::{ffi::c_char, ffi::CString, vec::Vec};
+use std::{ffi::CString, ffi::c_char, vec::Vec};
 
 #[derive(Debug, Default)]
 struct PreOpen {
@@ -60,8 +60,8 @@ impl WasiCtxBuilder {
     /// This function should be called before `Instance::new`
     pub fn set_pre_open_path(
         mut self,
-        real_paths: Vec<&str>,
-        mapped_paths: Vec<&str>,
+        real_paths: &[&str],
+        mapped_paths: &[&str],
     ) -> WasiCtxBuilder {
         self.pre_open.real_paths = real_paths
             .iter()
@@ -81,7 +81,7 @@ impl WasiCtxBuilder {
     /// This function should be called before `Instance::new`
     ///
     /// all wasi args of a module will be spread into the environment variables of the module
-    pub fn set_env_vars(mut self, envs: Vec<&str>) -> WasiCtxBuilder {
+    pub fn set_env_vars(mut self, envs: &[&str]) -> WasiCtxBuilder {
         self.env = envs
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
@@ -98,7 +98,7 @@ impl WasiCtxBuilder {
     /// set allowed ns , which are part of WASI arguments, for the module
     ///
     /// This function should be called before `Instance::new`
-    pub fn set_allowed_dns(mut self, dns: Vec<&str>) -> WasiCtxBuilder {
+    pub fn set_allowed_dns(mut self, dns: &[&str]) -> WasiCtxBuilder {
         self.allowed_dns = dns
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
@@ -110,7 +110,7 @@ impl WasiCtxBuilder {
     /// set allowed ip addresses, which are part of WASI arguments, for the module
     ///
     /// This function should be called before `Instance::new`
-    pub fn set_allowed_address(mut self, addresses: Vec<&str>) -> WasiCtxBuilder {
+    pub fn set_allowed_address(mut self, addresses: &[&str]) -> WasiCtxBuilder {
         self.allowed_address = addresses
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
@@ -122,7 +122,7 @@ impl WasiCtxBuilder {
     /// set arguments, which are part of WASI arguments, for the module
     ///
     /// This function should be called before `Instance::new`
-    pub fn set_arguments(mut self, args: Vec<&str>) -> WasiCtxBuilder {
+    pub fn set_arguments(mut self, args: &[&str]) -> WasiCtxBuilder {
         self.args = args
             .iter()
             .map(|s| CString::new(s.as_bytes()).unwrap())
@@ -178,11 +178,11 @@ mod tests {
     #[test]
     fn test_wasi_ctx_build() {
         let wasi_ctx = WasiCtxBuilder::new()
-            .set_pre_open_path(vec!["a/b/c"], vec!["/dog/cat/rabbit"])
-            .set_allowed_address(vec!["1.2.3.4"])
-            .set_allowed_dns(vec![])
-            .set_env_vars(vec!["path=/usr/local/bin", "HOME=/home/xxx"])
-            .set_arguments(vec!["arg1", "arg2"])
+            .set_pre_open_path(&["a/b/c"], &["/dog/cat/rabbit"])
+            .set_allowed_address(&["1.2.3.4"])
+            .set_allowed_dns(&[])
+            .set_env_vars(&["path=/usr/local/bin", "HOME=/home/xxx"])
+            .set_arguments(&["arg1", "arg2"])
             .build();
 
         let mut preopen_iter = wasi_ctx.get_preopen_real_paths().iter();

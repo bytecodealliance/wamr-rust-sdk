@@ -8,6 +8,7 @@
 
 #![allow(unused_variables)]
 
+use alloc::string::String;
 use core::{ffi::c_char, marker::PhantomData};
 
 use wamr_sys::{
@@ -16,8 +17,8 @@ use wamr_sys::{
 };
 
 use crate::{
-    helper::error_buf_to_string, helper::DEFAULT_ERROR_BUF_SIZE, module::Module, runtime::Runtime,
-    RuntimeError,
+    RuntimeError, helper::DEFAULT_ERROR_BUF_SIZE, helper::error_buf_to_string, module::Module,
+    runtime::Runtime,
 };
 
 #[derive(Debug)]
@@ -76,12 +77,12 @@ impl<'module> Instance<'module> {
                 0 => {
                     return Err(RuntimeError::InstantiationFailure(String::from(
                         "instantiation failed",
-                    )))
+                    )));
                 }
                 _ => {
                     return Err(RuntimeError::InstantiationFailure(error_buf_to_string(
                         &error_buf,
-                    )))
+                    )));
                 }
             }
         }
@@ -110,8 +111,9 @@ impl Drop for Instance<'_> {
 mod tests {
     use super::*;
     use crate::runtime::Runtime;
+    use alloc::{vec, vec::Vec};
     use wamr_sys::{
-        wasm_runtime_get_running_mode, RunningMode_Mode_Interp, RunningMode_Mode_LLVM_JIT,
+        RunningMode_Mode_Interp, RunningMode_Mode_LLVM_JIT, wasm_runtime_get_running_mode,
     };
 
     #[test]

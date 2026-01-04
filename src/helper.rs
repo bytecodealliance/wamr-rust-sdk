@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-use std::ffi::{c_char, CStr};
-use std::string::String;
+use alloc::{string::String, string::ToString, vec::Vec};
+use core::ffi::{CStr, c_char};
 
 pub const DEFAULT_ERROR_BUF_SIZE: usize = 128;
 
@@ -29,7 +29,7 @@ pub fn exception_to_string(raw_exception: *const c_char) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ffi::CString;
+    use alloc::ffi::CString;
 
     #[test]
     fn test_error_buf_empty() {
