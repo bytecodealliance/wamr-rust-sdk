@@ -83,3 +83,6 @@ wasi-threads = ["wamr-sys/wasi-threads"]
 fast-interp = ["fast-interpreter"]
 
 wasi = []
+
+[dev-dependencies]
+wat = "1.243.0"
