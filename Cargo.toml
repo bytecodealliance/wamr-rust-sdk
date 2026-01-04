@@ -13,7 +13,7 @@ exclude = [
 resolver = "2"
 
 [workspace.package]
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0 WITH LLVM-exception"
 authors = ["The WAMR Project Developers"]
 
@@ -29,7 +29,7 @@ categories = ["api-bindings", "wasm"]
 keywords = ["api-bindings", "wasm", "webassembly"]
 
 [dependencies]
-wamr-sys = { path = "crates/wamr-sys", version = "1.0.0" }
+wamr-sys = { path = "crates/wamr-sys", version = "1.0.0", default-features = false }
 
 [target.'cfg( target_os = "espidf" )'.dependencies]
 esp-idf-sys = { version = "0.36", optional = true }
@@ -39,10 +39,50 @@ bindings_header = "./crates/wamr-sys/wasm-micro-runtime/core/iwasm/include/wasm_
 component_dirs = ["./crates/wamr-sys/wasm-micro-runtime/build-scripts/esp-idf"]
 
 [features]
-custom-section = ["wamr-sys/custom-section"]
-dump-call-stack = ["wamr-sys/dump-call-stack"]
+default = ["std", "default-set", "libc-wasi"]
+default-set = ["wamr-sys/default-set"]
+std = ["wamr-sys/std"]
 esp-idf = ["esp-idf-sys", "wamr-sys/esp-idf"]
+
+aot = ["wamr-sys/aot"]
+aot-stack-frame = ["wamr-sys/aot-stack-frame"]
+bulk-memory = ["wamr-sys/bulk-memory"]
+bulk-memory-optional = ["wamr-sys/bulk-memory-optional"]
+custom-section = ["wamr-sys/custom-section"]
+debug-interpreter = ["wamr-sys/debug-interpreter"]
+dump-call-stack = ["wamr-sys/dump-call-stack"]
+fast-interpreter = ["wamr-sys/fast-interpreter"]
+fast-jit = ["wamr-sys/fast-jit"]
+gc = ["wamr-sys/gc"]
 hw-bound-check = ["wamr-sys/hw-bound-check"]
+interpreter = ["wamr-sys/interpreter"]
+legacy-exception-handling = ["wamr-sys/legacy-exception-handling"]
+libc-builtin = ["wamr-sys/libc-builtin"]
+libc-uvwasi = ["wamr-sys/libc-uvwasi", "std", "wasi"]
+libc-wasi = ["wamr-sys/libc-wasi", "std", "wasi"]
 llvmjit = ["wamr-sys/llvmjit"]
+memory-profiling = ["wamr-sys/memory-profiling"]
+memory64 = ["wamr-sys/memory64"]
+mini-loader = ["wamr-sys/mini-loader"]
+multi-memory = ["wamr-sys/multi-memory"]
 multi-module = ["wamr-sys/multi-module"]
 name-section = ["wamr-sys/name-section"]
+pthread = ["wamr-sys/pthread"]
+pthread-semaphore = ["wamr-sys/pthread-semaphore"]
+reference-types = ["wamr-sys/reference-types"]
+shared-memory = ["wamr-sys/shared-memory"]
+shrunk-memory = ["wamr-sys/shrunk-memory"]
+simd = ["wamr-sys/simd"]
+simde = ["wamr-sys/simde"]
+tail-call = ["wamr-sys/tail-call"]
+threads-manager = ["wamr-sys/threads-manager"]
+wasi-nn = ["wamr-sys/wasi-nn"]
+wasi-threads = ["wamr-sys/wasi-threads"]
+
+# Deprecated aliases for backwards compatibility
+fast-interp = ["fast-interpreter"]
+
+wasi = []
+
+[dev-dependencies]
+wat = "1.243.0"

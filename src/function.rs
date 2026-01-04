@@ -6,19 +6,22 @@
 //! an exported wasm function.
 //! get one via `Function::find_export_func()`
 
-use std::{ffi::CString, marker::PhantomData};
+use alloc::{ffi::CString, string::String, vec, vec::Vec};
+use core::{ffi::c_void, marker::PhantomData};
+
 use wamr_sys::{
     wasm_exec_env_t, wasm_func_get_param_count, wasm_func_get_result_count,
     wasm_func_get_result_types, wasm_function_inst_t, wasm_runtime_call_wasm,
-    wasm_runtime_get_exception, wasm_runtime_get_exec_env_singleton,
-    wasm_runtime_get_wasi_exit_code, wasm_runtime_lookup_function,
-    wasm_valkind_enum_WASM_EXTERNREF, wasm_valkind_enum_WASM_F32, wasm_valkind_enum_WASM_F64,
-    wasm_valkind_enum_WASM_FUNCREF, wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64,
-    wasm_valkind_enum_WASM_V128,
+    wasm_runtime_get_exception, wasm_runtime_lookup_function, wasm_valkind_enum_WASM_EXTERNREF,
+    wasm_valkind_enum_WASM_F32, wasm_valkind_enum_WASM_F64, wasm_valkind_enum_WASM_FUNCREF,
+    wasm_valkind_enum_WASM_I32, wasm_valkind_enum_WASM_I64, wasm_valkind_enum_WASM_V128,
 };
 
+#[cfg(feature = "wasi")]
+use wamr_sys::wasm_runtime_get_wasi_exit_code;
+
 use crate::{
-    helper::exception_to_string, instance::Instance, value::WasmValue, ExecError, RuntimeError,
+    ExecError, RuntimeError, helper::exception_to_string, instance::Instance, value::WasmValue,
 };
 
 pub struct Function<'instance> {
@@ -74,7 +77,7 @@ impl<'instance> Function<'instance> {
         let mut index: usize = 0;
 
         for result_type in result_types.iter() {
-            match *result_type as u32 {
+            match *result_type as i32 {
                 wasm_valkind_enum_WASM_I32
                 | wasm_valkind_enum_WASM_FUNCREF
                 | wasm_valkind_enum_WASM_EXTERNREF => {
@@ -114,13 +117,29 @@ impl<'instance> Function<'instance> {
     pub fn call(
         &self,
         instance: &'instance Instance<'instance>,
-        params: &Vec<WasmValue>,
+        params: &[WasmValue],
+    ) -> Result<Vec<WasmValue>, RuntimeError> {
+        self.call_with_user_data(instance, params, core::ptr::null_mut())
+    }
+
+    /// execute an export function.
+    /// all parameters need to be wrapped in `WasmValue`
+    ///
+    /// # Error
+    ///
+    /// Return `RuntimeError::ExecutionError` if failed.
+    #[allow(non_upper_case_globals)]
+    pub fn call_with_user_data(
+        &self,
+        instance: &'instance Instance<'instance>,
+        params: &[WasmValue],
+        user_data: *mut c_void,
     ) -> Result<Vec<WasmValue>, RuntimeError> {
         let param_count =
             unsafe { wasm_func_get_param_count(self.function, instance.get_inner_instance()) };
         if param_count > params.len() as u32 {
             return Err(RuntimeError::ExecutionError(ExecError {
-                message: "invalid parameters".to_string(),
+                message: String::from("invalid parameters"),
                 exit_code: 0xff,
             }));
         }
@@ -128,7 +147,7 @@ impl<'instance> Function<'instance> {
         // Maintain sufficient allocated space in the vector rather than just declaring its capacity.
         let result_count =
             unsafe { wasm_func_get_result_count(self.function, instance.get_inner_instance()) };
-        let capacity = std::cmp::max(param_count, result_count) as usize * 4;
+        let capacity = core::cmp::max(param_count, result_count) as usize * 4;
 
         // Populate the parameters in the sufficiently allocated argv vector
         let mut argv = Vec::with_capacity(capacity);
@@ -140,9 +159,11 @@ impl<'instance> Function<'instance> {
         let call_result: bool;
         unsafe {
             let exec_env: wasm_exec_env_t =
-                wasm_runtime_get_exec_env_singleton(instance.get_inner_instance());
+                wamr_sys::wasm_runtime_create_exec_env(instance.get_inner_instance(), 1024 * 1024);
+            wamr_sys::wasm_runtime_set_user_data(exec_env, user_data);
             call_result =
                 wasm_runtime_call_wasm(exec_env, self.function, param_count, argv.as_mut_ptr());
+            wamr_sys::wasm_runtime_destroy_exec_env(exec_env);
         };
 
         if !call_result {
@@ -150,7 +171,13 @@ impl<'instance> Function<'instance> {
                 let exception_c = wasm_runtime_get_exception(instance.get_inner_instance());
                 let error_info = ExecError {
                     message: exception_to_string(exception_c),
-                    exit_code: wasm_runtime_get_wasi_exit_code(instance.get_inner_instance()),
+                    exit_code: {
+                        #[cfg(feature = "wasi")]
+                        let code = wasm_runtime_get_wasi_exit_code(instance.get_inner_instance());
+                        #[cfg(not(feature = "wasi"))]
+                        let code = 0xff;
+                        code
+                    },
                 };
                 return Err(RuntimeError::ExecutionError(error_info));
             }
@@ -164,9 +191,15 @@ impl<'instance> Function<'instance> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{module::Module, runtime::Runtime, wasi_context::WasiCtxBuilder};
+    #[cfg(all(feature = "std", feature = "wasi"))]
+    use crate::wasi_context::WasiCtxBuilder;
+    use crate::{module::Module, runtime::Runtime};
+    #[cfg(all(feature = "std", feature = "wasi"))]
     use std::{
-        process::{Command, Stdio}, path::Path, path::PathBuf, env, fs,
+        env, fs,
+        path::Path,
+        path::PathBuf,
+        process::{Command, Stdio},
     };
 
     #[test]
@@ -240,6 +273,7 @@ mod tests {
         );
     }
 
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_func_in_wasm32_wasi() {
         let runtime = Runtime::new().unwrap();
@@ -251,9 +285,7 @@ mod tests {
         assert!(module.is_ok());
         let mut module = module.unwrap();
 
-        let wasi_ctx = WasiCtxBuilder::new()
-            .set_pre_open_path(vec!["."], vec![])
-            .build();
+        let wasi_ctx = WasiCtxBuilder::new().set_pre_open_path(&["."], &[]).build();
         module.set_wasi_context(wasi_ctx);
 
         let instance = Instance::new(&runtime, &module, 1024 * 64);
@@ -273,6 +305,7 @@ mod tests {
         assert_eq!(result.unwrap(), vec![WasmValue::I32(27)]);
     }
 
+    #[cfg(all(feature = "std", feature = "wasi"))]
     #[test]
     fn test_func_in_wasm32_wasi_w_args() {
         let runtime = Runtime::new().unwrap();
@@ -285,8 +318,8 @@ mod tests {
         let mut module = module.unwrap();
 
         let wasi_ctx = WasiCtxBuilder::new()
-            .set_pre_open_path(vec!["."], vec![])
-            .set_arguments(vec!["wasi-demo-app.wasm", "echo", "hi"])
+            .set_pre_open_path(&["."], &[])
+            .set_arguments(&["wasi-demo-app.wasm", "echo", "hi"])
             .build();
         module.set_wasi_context(wasi_ctx);
 
@@ -303,6 +336,8 @@ mod tests {
         println!("{:?}", result.unwrap());
     }
 
+    #[cfg(all(feature = "std", feature = "wasi"))]
+    #[ignore]
     #[test]
     fn test_func_in_multi_v128_return() {
         let runtime = Runtime::new().unwrap();
@@ -338,7 +373,8 @@ mod tests {
         };
         let base_entries = fs::read_dir(base);
         assert!(base_entries.is_ok());
-        let found = base_entries.unwrap()
+        let found = base_entries
+            .unwrap()
             .filter_map(|entry| entry.ok())
             .map(|entry| {
                 let path = entry.path();
@@ -350,8 +386,20 @@ mod tests {
                 (path, name)
             })
             .filter_map(|(path, name)| {
-                if name.starts_with("wamr-sys") && path.join("out").join("wamrcbuild").join("bin").join("wamrc").exists() {
-                    Some(path.join("out").join("wamrcbuild").join("bin").join("wamrc"))
+                if name.starts_with("wamr-sys")
+                    && path
+                        .join("out")
+                        .join("wamrcbuild")
+                        .join("bin")
+                        .join("wamrc")
+                        .exists()
+                {
+                    Some(
+                        path.join("out")
+                            .join("wamrcbuild")
+                            .join("bin")
+                            .join("wamrc"),
+                    )
                 } else {
                     None
                 }
@@ -365,7 +413,7 @@ mod tests {
             .arg("-o")
             .arg(aot_dest.clone())
             .arg(wasm_src.clone())
-            .stderr(Stdio::piped())  
+            .stderr(Stdio::piped())
             .stdout(Stdio::piped())
             .output()
             .unwrap();
@@ -385,7 +433,7 @@ mod tests {
 
         let wrapped_result = function.call(instance, &vec![]);
         let unwrapped_result = wrapped_result.unwrap();
-        
+
         assert_eq!(unwrapped_result.len(), 12);
         assert_eq!(
             unwrapped_result,

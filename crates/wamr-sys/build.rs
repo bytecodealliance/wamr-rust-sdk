@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  */
 
-extern crate bindgen;
-extern crate cmake;
-
 use cmake::Config;
 use std::{env, path::Path, path::PathBuf};
 
@@ -41,51 +38,28 @@ fn check_is_espidf() -> bool {
         && (env::var("WAMR_BUILD_PLATFORM").is_ok()
             || env::var("WAMR_SHARED_PLATFORM_CONFIG").is_ok())
     {
-        panic!("ESP-IDF build cannot use custom platform build (WAMR_BUILD_PLATFORM) or shared platform config (WAMR_SHARED_PLATFORM_CONFIG)");
+        panic!(
+            "ESP-IDF build cannot use custom platform build (WAMR_BUILD_PLATFORM) or shared platform config (WAMR_SHARED_PLATFORM_CONFIG)"
+        );
     }
 
     is_espidf
 }
 
-fn get_feature_flags() -> (String, String, String, String, String, String) {
-    let enable_custom_section = if cfg!(feature = "custom-section") {
-        "1"
-    } else {
-        "0"
+macro_rules! wamr_build_enable_option {
+    (not; $feature:expr) => {
+        if cfg!(not(feature = $feature)) {
+            "1"
+        } else {
+            "0"
+        }
     };
-    let enable_dump_call_stack = if cfg!(feature = "dump-call-stack") {
-        "1"
-    } else {
-        "0"
+    ($feature:expr) => {
+        if cfg!(feature = $feature) { "1" } else { "0" }
     };
-    let enable_llvm_jit = if cfg!(feature = "llvmjit") { "1" } else { "0" };
-    let enable_multi_module = if cfg!(feature = "multi-module") {
-        "1"
-    } else {
-        "0"
-    };
-    let enable_name_section = if cfg!(feature = "name-section") {
-        "1"
-    } else {
-        "0"
-    };
-    let disable_hw_bound_check = if cfg!(feature = "hw-bound-check") {
-        "0"
-    } else {
-        "1"
-    };
-
-    (
-        enable_custom_section.to_string(),
-        enable_dump_call_stack.to_string(),
-        enable_llvm_jit.to_string(),
-        enable_multi_module.to_string(),
-        enable_name_section.to_string(),
-        disable_hw_bound_check.to_string(),
-    )
 }
 
-fn link_llvm_libraries(llvm_cfg_path: &String, enable_llvm_jit: &String) {
+fn link_llvm_libraries(llvm_cfg_path: &str, enable_llvm_jit: &str) {
     if enable_llvm_jit == "0" {
         return;
     }
@@ -109,34 +83,124 @@ fn link_llvm_libraries(llvm_cfg_path: &String, enable_llvm_jit: &String) {
     }
 }
 
-fn setup_config(
-    wamr_root: &PathBuf,
-    feature_flags: (String, String, String, String, String, String),
-) -> Config {
-    let (
-        enable_custom_section,
-        enable_dump_call_stack,
-        enable_llvm_jit,
-        enable_multi_module,
-        enable_name_section,
-        disalbe_hw_bound_check,
-    ) = feature_flags;
+fn setup_config(cmakelists_dir: &PathBuf) -> Config {
+    let mut cfg = Config::new(cmakelists_dir);
 
-    let mut cfg = Config::new(wamr_root);
-    cfg.define("WAMR_BUILD_AOT", "1")
-        .define("WAMR_BUILD_INTERP", "1")
-        .define("WAMR_BUILD_FAST_INTERP", "1")
-        .define("WAMR_BUILD_JIT", &enable_llvm_jit)
-        .define("WAMR_BUILD_BULK_MEMORY", "1")
-        .define("WAMR_BUILD_REF_TYPES", "1")
-        .define("WAMR_BUILD_SIMD", "1")
-        .define("WAMR_BUILD_LIBC_WASI", "1")
-        .define("WAMR_BUILD_LIBC_BUILTIN", "0")
-        .define("WAMR_DISABLE_HW_BOUND_CHECK", &disalbe_hw_bound_check)
-        .define("WAMR_BUILD_MULTI_MODULE", &enable_multi_module)
-        .define("WAMR_BUILD_DUMP_CALL_STACK", &enable_dump_call_stack)
-        .define("WAMR_BUILD_CUSTOM_NAME_SECTION", &enable_name_section)
-        .define("WAMR_BUILD_LOAD_CUSTOM_SECTION", &enable_custom_section);
+    for (key, value) in [
+        ("WAMR_BUILD_AOT", wamr_build_enable_option!("aot")),
+        (
+            "WAMR_BUILD_AOT_STACK_FRAME",
+            wamr_build_enable_option!("aot-stack-frame"),
+        ),
+        (
+            "WAMR_BUILD_INTERP",
+            wamr_build_enable_option!("interpreter"),
+        ),
+        (
+            "WAMR_BUILD_FAST_INTERP",
+            wamr_build_enable_option!("fast-interpreter"),
+        ),
+        (
+            "WAMR_BUILD_SHARED_MEMORY",
+            wamr_build_enable_option!("shared-memory"),
+        ),
+        (
+            "WAMR_BUILD_MINI_LOADER",
+            wamr_build_enable_option!("mini-loader"),
+        ),
+        ("WAMR_BUILD_JIT", wamr_build_enable_option!("llvmjit")),
+        ("WAMR_BUILD_FAST_JIT", wamr_build_enable_option!("fast-jit")),
+        (
+            "WAMR_BUILD_BULK_MEMORY",
+            wamr_build_enable_option!("bulk-memory"),
+        ),
+        (
+            "WAMR_BUILD_REF_TYPES",
+            wamr_build_enable_option!("reference-types"),
+        ),
+        (
+            "WAMR_BUILD_LIB_PTHREAD",
+            wamr_build_enable_option!("pthread"),
+        ),
+        (
+            "WAMR_BUILD_LIB_PTHREAD_SEMAPHORE",
+            wamr_build_enable_option!("pthread-semaphore"),
+        ),
+        (
+            "WAMR_BUILD_LIBC_WASI",
+            wamr_build_enable_option!("libc-wasi"),
+        ),
+        (
+            "WAMR_BUILD_LIBC_BUILTIN",
+            wamr_build_enable_option!("libc-builtin"),
+        ),
+        (
+            "WAMR_BUILD_LIBC_UVWASI",
+            wamr_build_enable_option!("libc-uvwasi"),
+        ),
+        (
+            "WAMR_DISABLE_HW_BOUND_CHECK",
+            wamr_build_enable_option!(not; "hw-bound-check"),
+        ),
+        (
+            "WAMR_BUILD_MULTI_MODULE",
+            wamr_build_enable_option!("multi-module"),
+        ),
+        (
+            "WAMR_BUILD_DUMP_CALL_STACK",
+            wamr_build_enable_option!("dump-call-stack"),
+        ),
+        (
+            "WAMR_BUILD_CUSTOM_NAME_SECTION",
+            wamr_build_enable_option!("name-section"),
+        ),
+        (
+            "WAMR_BUILD_LOAD_CUSTOM_SECTION",
+            wamr_build_enable_option!("custom-section"),
+        ),
+        ("WAMR_BUILD_SIMD", wamr_build_enable_option!("simd")),
+        ("WAMR_BUILD_LIB_SIMDE", wamr_build_enable_option!("simde")),
+        ("WAMR_BUILD_GC", wamr_build_enable_option!("gc")),
+        (
+            "WAMR_BUILD_EXCE_HANDLING",
+            wamr_build_enable_option!("legacy-exception-handling"),
+        ),
+        ("WAMR_BUILD_MEMORY64", wamr_build_enable_option!("memory64")),
+        (
+            "WAMR_BUILD_MULTI_MEMORY",
+            wamr_build_enable_option!("multi-memory"),
+        ),
+        (
+            "WAMR_BUILD_THREAD_MGR",
+            wamr_build_enable_option!("threads-manager"),
+        ),
+        (
+            "WAMR_BUILD_LIB_WASI_THREADS",
+            wamr_build_enable_option!("wasi-threads"),
+        ),
+        (
+            "WAMR_BUILD_TAIL_CALL",
+            wamr_build_enable_option!("tail-call"),
+        ),
+        (
+            "WAMR_BUILD_MEMORY_PROFILING",
+            wamr_build_enable_option!("memory-profiling"),
+        ),
+        (
+            "WAMR_BUILD_DEBUG_INTERP",
+            wamr_build_enable_option!("debug-interpreter"),
+        ),
+        ("WAMR_BUILD_WASI_NN", wamr_build_enable_option!("wasi-nn")),
+        (
+            "WAMR_BUILD_SHRUNK_MEMORY",
+            wamr_build_enable_option!("shrunk-memory"),
+        ),
+    ] {
+        cfg.define(key, value);
+    }
+
+    cfg.define("WASM_API_EXTERN", "");
+    cfg.define("WASM_RUNTIME_API_EXTERN", "");
 
     // always assume non-empty strings for these environment variables
 
@@ -153,7 +217,7 @@ fn setup_config(
     }
 
     if let Ok(llvm_cfg_path) = env::var("LLVM_LIB_CFG_PATH") {
-        link_llvm_libraries(&llvm_cfg_path, &enable_llvm_jit);
+        link_llvm_libraries(&llvm_cfg_path, wamr_build_enable_option!("llvmjit"));
         cfg.define("LLVM_DIR", &llvm_cfg_path);
     }
 
@@ -169,14 +233,29 @@ fn build_wamr_libraries(wamr_root: &PathBuf) {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let vmbuild_path = out_dir.join("vmbuild");
 
-    let feature_flags = get_feature_flags();
-    let mut cfg = setup_config(wamr_root, feature_flags);
-    let dst = cfg.out_dir(vmbuild_path).build_target("vmlib").build();
+    let dst = {
+        let mut cfg = setup_config(wamr_root);
+        println!("cargo:rustc-link-lib=static=iwasm");
+        cfg.out_dir(vmbuild_path).build_target("vmlib").build()
+    }
+    .join("build");
 
-    println!("cargo:rustc-link-search=native={}/build", dst.display());
-    println!("cargo:rustc-link-lib=static=iwasm");
+    let dst = if cfg!(target_os = "windows") {
+        globwalk::GlobWalkerBuilder::from_patterns(&dst, &["iwasm.lib"])
+            .build()
+            .expect("Failed to build glob walker")
+            .filter_map(Result::ok)
+            .next()
+            .and_then(|entry| entry.path().parent().map(|p| p.to_path_buf()))
+            .unwrap_or(dst)
+    } else {
+        dst
+    };
+
+    println!("cargo:rustc-link-search=native={}", dst.display());
 }
 
+#[cfg(feature = "wamrc")]
 fn build_wamrc(wamr_root: &Path) {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let wamrc_build_path = out_dir.join("wamrcbuild");
@@ -187,7 +266,11 @@ fn build_wamrc(wamr_root: &Path) {
     Config::new(&wamr_compiler_path)
         .out_dir(wamrc_build_path)
         .define("WAMR_BUILD_WITH_CUSTOM_LLVM", "1")
-        .define("LLVM_DIR", env::var("LLVM_LIB_CFG_PATH").expect("LLVM_LIB_CFG_PATH isn't specified in config.toml"))
+        .define(
+            "LLVM_DIR",
+            env::var("LLVM_LIB_CFG_PATH")
+                .expect("LLVM_LIB_CFG_PATH isn't specified in config.toml"),
+        )
         .build();
 }
 
@@ -223,8 +306,23 @@ fn main() {
     if !check_is_espidf() {
         // because the ESP-IDF build procedure differs from the regular one
         // (build internally by esp-idf-sys),
-        build_wamr_libraries(&wamr_root);
-        build_wamrc(&wamr_root);
+
+        std::thread::scope(|t| {
+            let lib = t.spawn(|| {
+                build_wamr_libraries(&wamr_root);
+            });
+            #[cfg(feature = "wamrc")]
+            {
+                let wamrc = t.spawn(|| {
+                    build_wamrc(&wamr_root);
+                });
+            }
+            lib.join().expect("lib thread panicked");
+            #[cfg(feature = "wamrc")]
+            {
+                wamrc.join().expect("wamrc thread panicked");
+            }
+        });
     }
 
     generate_bindings(&wamr_root);

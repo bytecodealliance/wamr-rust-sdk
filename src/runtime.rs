@@ -7,15 +7,17 @@
 //! Every process should have only one instance of this runtime by call
 //! `Runtime::new()` or `Runtime::builder().build()` once.
 
-use std::ffi::c_void;
+use alloc::vec::Vec;
+use core::{alloc::Layout, ffi::c_void};
 
 use wamr_sys::{
-    mem_alloc_type_t_Alloc_With_Pool, mem_alloc_type_t_Alloc_With_System_Allocator,
-    wasm_runtime_destroy, wasm_runtime_full_init, wasm_runtime_init, NativeSymbol,
-    RunningMode_Mode_Interp, RunningMode_Mode_LLVM_JIT, RuntimeInitArgs,
+    NativeSymbol, RunningMode_Mode_Interp, RunningMode_Mode_LLVM_JIT, RuntimeInitArgs,
+    mem_alloc_type_t_Alloc_With_Allocator, mem_alloc_type_t_Alloc_With_Pool,
+    mem_alloc_type_t_Alloc_With_System_Allocator, wasm_runtime_destroy, wasm_runtime_full_init,
+    wasm_runtime_init,
 };
 
-use crate::{host_function::HostFunctionList, RuntimeError};
+use crate::{RuntimeError, host_function::HostFunctionList};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -81,6 +83,40 @@ impl RuntimeBuilder {
     /// allocate memory from system allocator for runtime consumed memory
     pub fn use_system_allocator(mut self) -> RuntimeBuilder {
         self.args.mem_alloc_type = mem_alloc_type_t_Alloc_With_System_Allocator;
+        self
+    }
+
+    pub fn use_rust_allocator(mut self) -> RuntimeBuilder {
+        self.args.mem_alloc_type = mem_alloc_type_t_Alloc_With_Allocator;
+        self.args.mem_alloc_option.allocator.malloc_func = {
+            extern "C" fn malloc(size: usize) -> *mut c_void {
+                unsafe {
+                    alloc::alloc::alloc(Layout::from_size_align(size, 8).unwrap()) as *mut c_void
+                }
+            }
+            malloc as *mut c_void
+        };
+        self.args.mem_alloc_option.allocator.realloc_func = {
+            extern "C" fn realloc(ptr: *mut c_void, new_size: usize) -> *mut c_void {
+                unsafe {
+                    alloc::alloc::realloc(
+                        ptr as *mut u8,
+                        Layout::from_size_align(new_size, 8).unwrap(),
+                        new_size,
+                    ) as *mut c_void
+                }
+            }
+            realloc as *mut c_void
+        };
+
+        self.args.mem_alloc_option.allocator.free_func = {
+            extern "C" fn free(ptr: *mut c_void) {
+                unsafe {
+                    alloc::alloc::dealloc(ptr as *mut u8, Layout::from_size_align(0, 8).unwrap())
+                };
+            }
+            free as *mut c_void
+        };
         self
     }
 
